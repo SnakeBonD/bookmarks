@@ -10,4 +10,5 @@ for(const f of ['api/config.js','api/check-link.js','supabase/migrations/001_boo
 
 for(const f of ['manifest.webmanifest','favicon.svg','sw.js']){if(!fs.existsSync(path.join(root,f)))throw new Error('Missing PWA file '+f)}
 
-if(js.includes("$('.drawer-item').forEach")||js.includes("$('[data-edit]').forEach")||js.includes("$('[data-visit]').forEach"))throw new Error('Invalid single-element selector used with forEach');
+const invalidForEach=[/(^|[^$])\$\('\.drawer-item'\)\.forEach/,/(^|[^$])\$\('\[data-edit\]'\)\.forEach/,/(^|[^$])\$\('\[data-visit\]'\)\.forEach/,/(^|[^$])\$\('\[data-edit-page\]'\)\.forEach/];
+if(invalidForEach.some(re=>re.test(js)))throw new Error('Invalid single-element selector used with forEach');
