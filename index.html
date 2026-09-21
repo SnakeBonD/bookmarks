@@ -9,13 +9,13 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <meta name="description" content="Bookmarks — gestionnaire personnel de favoris et pages de démarrage." />
-  <title>Bookmarks v0.8</title>
+  <title>Bookmarks v0.9</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v0.8</span></div>
+      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v0.9</span></div>
       <div class="top-actions">
         <button id="themeToggle" class="icon-btn" title="Changer de thème">◐</button>
         <button id="installBtn" class="btn secondary hidden" title="Installer Bookmarks">Installer</button>
@@ -158,6 +158,12 @@
       </label>
       <div class="modal-actions"><span class="spacer"></span><button type="button" id="saveWidgetsBtn" class="btn primary">Enregistrer</button></div>
     </form>
+  </dialog>
+
+  <dialog id="backupDialog" class="modal small">
+    <div class="modal-head"><h2>Sauvegardes</h2><button type="button" id="closeBackups" class="icon-btn">✕</button></div>
+    <div class="backup-toolbar"><button id="createSnapshotBtn" type="button" class="btn primary">Créer un snapshot</button></div>
+    <div id="backupList" class="backup-list"></div>
   </dialog>
 
   <dialog id="toolsDialog" class="modal small">
