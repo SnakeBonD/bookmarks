@@ -37,3 +37,11 @@ button,input,select,textarea{font:inherit}.app-shell{min-height:100vh}.topbar,.p
 .health-ok{background:rgba(15,157,88,.14);color:#0f9d58;border:1px solid rgba(15,157,88,.35)}
 .health-bad{background:rgba(180,35,24,.12);color:#d92d20;border:1px solid rgba(180,35,24,.35)}
 #smartSuggestBtn{width:100%;text-align:left}
+
+.widget-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.widget-options .check{grid-column:auto}
+#widgetForm>label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:13px}
+#widgetForm select{border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:9px;padding:10px}
+.web-search{display:flex;gap:6px}.web-search input{flex:1;min-width:0;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:8px;padding:8px}
+.mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px;text-align:center}.mini-cal>*{padding:3px}.mini-cal b{color:var(--muted)}.mini-cal .today{background:var(--accent);color:white;border-radius:6px;font-weight:800}
+@media(max-width:720px){.widget-options{grid-template-columns:1fr}}
