@@ -1,42 +1,32 @@
-# Bookmarks v0.8
+# Bookmarks v0.9
 
 Gestionnaire personnel de favoris et pages de démarrage de SnakeBonD.
 
 Production : https://bookmarks.snakebond.net
 
-## Fonctions principales
-- Pages de démarrage multiples
-- Hiérarchie Page → Catégorie → Sous-catégorie → Groupe → Favori
-- Gestion complète des pages et favoris
-- Import/export JSON et favoris navigateur HTML
-- Détection des doublons et liens cassés
-- Historique d’utilisation
-- Suggestions locales de classement
+## Points forts
+- Pages, catégories, sous-catégories, groupes et favoris
+- Recherche, drag & drop et favoris épinglés
+- Import/export JSON et favoris navigateur
+- Détection des doublons et vérification sécurisée des liens
+- Historique d’utilisation et suggestions de classement
+- PWA installable et fonctionnement hors ligne
+- Widgets configurables, calendrier, recherche web et RSS
 - Synchronisation Supabase facultative
-- PWA installable et mode hors ligne
-- Widgets configurables par page
-- Widget RSS sécurisé
+- Sauvegardes locales versionnées
 
-## Widgets disponibles
-- Horloge
-- Statistiques
-- Plus utilisé
-- Dernier utilisé
-- Note rapide
-- Recherche web
-- Calendrier
-- Flux RSS
+## Sauvegardes v0.9
+Bookmarks conserve jusqu’à 10 snapshots locaux.
 
-Le widget RSS utilise `/api/fetch-rss`, une fonction Vercel qui revalide le DNS et les redirections avant chaque accès.
+Des snapshots automatiques sont créés avant :
+- suppression d’une page ;
+- import JSON remplaçant les données ;
+- restauration depuis le cloud ;
+- restauration d’un ancien snapshot.
 
-## Sécurité RSS
-- HTTP/HTTPS uniquement
-- blocage des identifiants dans l’URL
-- blocage localhost et réseaux privés
-- validation DNS
-- validation de chaque redirection
-- timeout
-- taille maximale du flux : 1 MiB
+Accès : **Outils → Sauvegardes → Gérer**.
+
+Les snapshots restent sur l’appareil tant que la synchronisation cloud n’est pas activée.
 
 ## Développement
 ```bash
@@ -44,11 +34,12 @@ npm run check
 npm test
 ```
 
-## Cloud
-La synchronisation Supabase reste facultative. Bookmarks continue à fonctionner en localStorage si elle n’est pas configurée.
+## Sécurité
+- RLS stricte pour la synchronisation facultative
+- aucun secret serveur exposé
+- vérificateurs d’URL protégés contre SSRF
+- cache PWA limité aux ressources de l’application
+- snapshots stockés localement
 
-## Prochaines pistes
-- sauvegardes versionnées
-- restauration de snapshots
-- personnalisation avancée de l’apparence des pages
-- finalisation v1.0
+## Prochaine étape
+v1.0 : stabilisation, métadonnées de production, sitemap/robots, page 404, en-têtes de sécurité et validation finale.
