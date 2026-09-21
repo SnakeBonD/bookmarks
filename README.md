@@ -1,4 +1,4 @@
-# Bookmarks v0.3
+# Bookmarks v0.4
 
 Gestionnaire personnel de favoris et pages de démarrage de SnakeBonD.
 
@@ -21,13 +21,27 @@ Production : https://bookmarks.snakebond.net
 - Thème clair / sombre
 - Import / export JSON
 - Responsive desktop / smartphone
-- Synchronisation cloud facultative avec Supabase
-- Connexion par lien e-mail
-- Sauvegarde cloud manuelle ou automatique
-- Mode local conservé si Supabase n’est pas configuré
+- Synchronisation cloud Supabase facultative
+- Historique d’utilisation des favoris
+- Widgets « Plus utilisé » et « Dernier utilisé »
+- Suggestion locale de catégorie / sous-catégorie / tags
+- Vérification réelle des liens via une fonction Vercel
+- Protection SSRF du vérificateur : blocage localhost, réseaux privés et redirections vers IP privées
+
+## Vérification des liens
+La fonction `/api/check-link` :
+- accepte uniquement HTTP/HTTPS
+- bloque les URLs avec identifiants intégrés
+- résout le DNS avant chaque requête
+- bloque les plages locales et privées
+- revalide chaque redirection
+- impose un délai d’expiration
+- ne transmet pas d’en-têtes utilisateur arbitraires
+
+Les codes 401, 403, 405 et 429 sont considérés comme « service joignable », pas comme lien cassé.
 
 ## Synchronisation Supabase
-La v0.3 fonctionne sans Supabase. Pour activer le cloud :
+La v0.4 fonctionne aussi sans Supabase. Pour activer le cloud :
 
 1. Créer un projet Supabase dédié à Bookmarks.
 2. Appliquer `supabase/migrations/001_bookmark_states.sql`.
@@ -36,9 +50,7 @@ La v0.3 fonctionne sans Supabase. Pour activer le cloud :
    - `SUPABASE_PUBLISHABLE_KEY`
 4. Ajouter `https://bookmarks.snakebond.net` aux URLs autorisées dans Supabase Auth.
 
-La clé utilisée côté navigateur doit être une clé **publishable**. Aucune clé service role ne doit être exposée.
-
-La table `bookmark_states` utilise RLS et limite chaque utilisateur à sa propre ligne.
+La clé navigateur doit être une clé publishable. Aucune clé service role ne doit être exposée.
 
 ## Développement
 ```bash
@@ -52,9 +64,9 @@ npm test
 - P : menu des pages
 - T : changer de thème
 
-## Roadmap
-### v0.4
-- maintenance intelligente du catalogue
-- vérification avancée des liens
-- historique d’utilisation
-- suggestions de classement
+## Prochaines pistes
+- import de favoris navigateur
+- widgets RSS / calendrier
+- tableaux personnalisés
+- synchronisation Supabase activée en production
+- enrichissement automatique des métadonnées
