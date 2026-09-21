@@ -1,4 +1,4 @@
-# Bookmarks v0.4
+# Bookmarks v0.5
 
 Gestionnaire personnel de favoris et pages de démarrage de SnakeBonD.
 
@@ -9,6 +9,7 @@ Production : https://bookmarks.snakebond.net
 - Hiérarchie Page → Catégorie → Sous-catégorie → Groupe → Favori
 - Gestion complète des pages et favoris
 - Modèles de pages
+- Réorganisation des pages par glisser-déposer
 - Recherche locale ou globale
 - Favoris épinglés
 - Grille / liste
@@ -20,37 +21,35 @@ Production : https://bookmarks.snakebond.net
 - Raccourcis clavier
 - Thème clair / sombre
 - Import / export JSON
+- Import des favoris Chrome / Edge / Firefox depuis le format HTML Netscape
+- Export de l’ensemble des pages en HTML de favoris compatible navigateur
+- Déduplication automatique pendant l’import navigateur
 - Responsive desktop / smartphone
 - Synchronisation cloud Supabase facultative
-- Historique d’utilisation des favoris
-- Widgets « Plus utilisé » et « Dernier utilisé »
-- Suggestion locale de catégorie / sous-catégorie / tags
-- Vérification réelle des liens via une fonction Vercel
-- Protection SSRF du vérificateur : blocage localhost, réseaux privés et redirections vers IP privées
+- Historique d’utilisation
+- Suggestions locales de classement
+- Vérification sécurisée des liens
 
-## Vérification des liens
-La fonction `/api/check-link` :
-- accepte uniquement HTTP/HTTPS
-- bloque les URLs avec identifiants intégrés
-- résout le DNS avant chaque requête
-- bloque les plages locales et privées
-- revalide chaque redirection
-- impose un délai d’expiration
-- ne transmet pas d’en-têtes utilisateur arbitraires
+## Import depuis un navigateur
+Exportez d’abord vos favoris depuis Chrome, Edge ou Firefox au format HTML, puis ouvrez :
 
-Les codes 401, 403, 405 et 429 sont considérés comme « service joignable », pas comme lien cassé.
+**Outils → Favoris navigateur → Importer**
+
+Les dossiers du navigateur sont convertis selon la structure :
+- premier niveau → catégorie
+- deuxième niveau → sous-catégorie
+- niveaux suivants → groupe
+
+Les URLs déjà présentes sont ignorées automatiquement.
 
 ## Synchronisation Supabase
-La v0.4 fonctionne aussi sans Supabase. Pour activer le cloud :
+La synchronisation cloud reste facultative. Sans configuration Supabase, l’application continue à fonctionner intégralement en localStorage.
 
-1. Créer un projet Supabase dédié à Bookmarks.
-2. Appliquer `supabase/migrations/001_bookmark_states.sql`.
-3. Configurer dans Vercel :
-   - `SUPABASE_URL`
-   - `SUPABASE_PUBLISHABLE_KEY`
-4. Ajouter `https://bookmarks.snakebond.net` aux URLs autorisées dans Supabase Auth.
-
-La clé navigateur doit être une clé publishable. Aucune clé service role ne doit être exposée.
+Pour activer le cloud :
+1. créer un projet Supabase dédié à Bookmarks ;
+2. appliquer `supabase/migrations/001_bookmark_states.sql` ;
+3. configurer `SUPABASE_URL` et `SUPABASE_PUBLISHABLE_KEY` dans Vercel ;
+4. autoriser `https://bookmarks.snakebond.net` dans Supabase Auth.
 
 ## Développement
 ```bash
@@ -58,15 +57,12 @@ npm run check
 npm test
 ```
 
-## Raccourcis
-- Ctrl/⌘ + K : recherche
-- N : nouveau favori
-- P : menu des pages
-- T : changer de thème
+## Sécurité
+Le vérificateur de liens bloque les protocoles non HTTP(S), localhost, les plages privées, les redirections vers des réseaux privés et les URLs contenant des identifiants.
 
 ## Prochaines pistes
-- import de favoris navigateur
-- widgets RSS / calendrier
-- tableaux personnalisés
-- synchronisation Supabase activée en production
+- PWA / fonctionnement hors ligne
+- widgets RSS et calendrier
+- personnalisation avancée des tableaux
+- synchronisation cloud activée en production
 - enrichissement automatique des métadonnées
