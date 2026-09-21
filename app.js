@@ -1,6 +1,6 @@
 const STORAGE_KEY='snakebond-bookmarks-v01';
 const THEME_KEY='snakebond-bookmarks-theme';
-const VERSION='0.5';
+const VERSION='0.6';
 
 const seed={
   version:VERSION,activePageId:'ai-studio',view:'grid',collapsed:{},settings:{note:''},
@@ -245,5 +245,19 @@ document.documentElement.dataset.theme=localStorage.getItem(THEME_KEY)||'dark';$
 $('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bookmarks-backup.json';a.click();URL.revokeObjectURL(a.href)};
 $('#importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x.pages||!x.bookmarks)throw 0;if(confirm('Remplacer les données actuelles par cette sauvegarde ?')){state=x;state.version=VERSION;state.collapsed=state.collapsed||{};state.settings=state.settings||{note:''};render()}}catch{alert('Fichier de sauvegarde invalide.')}e.target.value=''};
 $('#browserImportInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const result=importBrowserHtml(await f.text(),state.activePageId);render();alert(`${result.added} favoris importés · ${result.skipped} doublons ignorés · ${result.found} liens détectés`)}catch(err){console.error(err);alert('Impossible de lire ce fichier de favoris.')}e.target.value=''};
+
+let deferredInstallPrompt=null;
+function updateNetworkStatus(){
+  const el=$('#networkStatus');if(!el)return;
+  const online=navigator.onLine;el.textContent=online?'En ligne':'Hors ligne';el.classList.toggle('sync-ok',online);el.classList.toggle('sync-warn',!online);
+}
+window.addEventListener('online',updateNetworkStatus);
+window.addEventListener('offline',updateNetworkStatus);
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;const b=$('#installBtn');if(b)b.classList.remove('hidden')});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const b=$('#installBtn');if(b)b.classList.add('hidden')});
+if($('#installBtn'))$('#installBtn').onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$('#installBtn').classList.add('hidden')};
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(err=>console.warn('Service worker registration failed',err)));
+updateNetworkStatus();
+
 initCloud();
 render();
