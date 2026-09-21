@@ -1,6 +1,6 @@
 const STORAGE_KEY='snakebond-bookmarks-v01';
 const THEME_KEY='snakebond-bookmarks-theme';
-const VERSION='0.2';
+const VERSION='0.3';
 
 const seed={
   version:VERSION,activePageId:'ai-studio',view:'grid',collapsed:{},settings:{note:''},
@@ -29,9 +29,10 @@ function uid(prefix='id'){return prefix+'-'+Math.random().toString(36).slice(2,1
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));if(!x||!x.pages||!x.bookmarks)throw 0;x.version=VERSION;x.collapsed=x.collapsed||{};x.settings=x.settings||{note:''};return x}catch{return clone(seed)}}
 let state=load();
+let cloudClient=null,cloudSession=null,cloudReady=false,cloudTimer=null,cloudBusy=false;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const els={pageTabs:$('#pageTabs'),content:$('#content'),widgets:$('#widgets'),search:$('#searchInput'),scope:$('#scopeSelect'),view:$('#viewSelect'),drawer:$('#pagesDrawer'),backdrop:$('#backdrop'),drawerPages:$('#drawerPages'),pageSearch:$('#pageSearch'),bookmarkDialog:$('#bookmarkDialog'),bookmarkForm:$('#bookmarkForm'),pageDialog:$('#pageDialog'),pageForm:$('#pageForm'),toolsDialog:$('#toolsDialog')};
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+const els={pageTabs:$('#pageTabs'),content:$('#content'),widgets:$('#widgets'),search:$('#searchInput'),scope:$('#scopeSelect'),view:$('#viewSelect'),drawer:$('#pagesDrawer'),backdrop:$('#backdrop'),drawerPages:$('#drawerPages'),pageSearch:$('#pageSearch'),bookmarkDialog:$('#bookmarkDialog'),bookmarkForm:$('#bookmarkForm'),pageDialog:$('#pageDialog'),pageForm:$('#pageForm'),toolsDialog:$('#toolsDialog'),cloudDialog:$('#cloudDialog')};
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));scheduleCloudSync()}
 function esc(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function currentPage(){return state.pages.find(p=>p.id===state.activePageId)||state.pages[0]}
 function favicon(url){try{return`https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(new URL(url).origin)}&sz=64`}catch{return''}}
@@ -71,6 +72,55 @@ $('#duplicatePageBtn').onclick=()=>{const id=$('#pageId').value,p=state.pages.fi
 $('#deletePageBtn').onclick=()=>{const id=$('#pageId').value,p=state.pages.find(x=>x.id===id);if(!p||state.pages.length===1)return alert('Il faut conserver au moins une page.');const count=state.bookmarks.filter(b=>b.pageId===id).length;if(confirm(`Supprimer “${p.name}” et ses ${count} favoris ?`)){state.pages=state.pages.filter(x=>x.id!==id);state.bookmarks=state.bookmarks.filter(b=>b.pageId!==id);state.activePageId=state.pages[0].id;els.pageDialog.close();render()}};
 
 function duplicateGroups(){const m=new Map;for(const b of state.bookmarks){const k=normalizeUrl(b.url);if(!m.has(k))m.set(k,[]);m.get(k).push(b)}return[...m.values()].filter(g=>g.length>1)}
+async function initCloud(){
+  try{
+    const res=await fetch('/api/config',{cache:'no-store'});
+    if(!res.ok)throw 0;
+    const cfg=await res.json();
+    if(!cfg.enabled||!cfg.supabaseUrl||!cfg.supabasePublishableKey||!window.supabase)throw 0;
+    cloudClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey);
+    const {data}=await cloudClient.auth.getSession();
+    cloudSession=data.session||null;cloudReady=true;
+    cloudClient.auth.onAuthStateChange((_event,session)=>{cloudSession=session;updateCloudUI()});
+  }catch{cloudReady=false;cloudClient=null;cloudSession=null}
+  updateCloudUI();
+}
+function cloudLabel(){if(!cloudReady)return'Cloud non configuré';if(!cloudSession)return'Cloud prêt — non connecté';return'Synchronisé avec '+(cloudSession.user?.email||'le cloud')}
+function updateCloudUI(){
+  const btn=$('#cloudBtn');if(btn){btn.textContent=cloudSession?'☁ Connecté':'☁ Cloud';btn.title=cloudLabel()}
+  const st=$('#cloudStatus');if(st)st.innerHTML=`<span class="${cloudSession?'sync-ok':cloudReady?'sync-warn':''}">${esc(cloudLabel())}</span>`;
+  const auth=$('#cloudAuthArea'),signed=$('#cloudSignedArea');if(auth)auth.classList.toggle('hidden',!!cloudSession||!cloudReady);if(signed)signed.classList.toggle('hidden',!cloudSession);
+  if($('#cloudUser'))$('#cloudUser').textContent=cloudSession?.user?.email||'';
+  if($('#cloudAutoSync'))$('#cloudAutoSync').checked=!!state.settings.cloudAutoSync;
+}
+async function cloudPush(){
+  if(!cloudClient||!cloudSession||cloudBusy)return false;cloudBusy=true;
+  try{
+    const payload=clone(state);payload.settings=payload.settings||{};payload.settings.lastCloudSync=new Date().toISOString();
+    const {error}=await cloudClient.from('bookmark_states').upsert({user_id:cloudSession.user.id,payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+    if(error)throw error;state.settings.lastCloudSync=payload.settings.lastCloudSync;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));updateCloudUI();return true
+  }catch(err){console.error('Cloud push failed',err);return false}finally{cloudBusy=false}
+}
+async function cloudPull(){
+  if(!cloudClient||!cloudSession||cloudBusy)return false;cloudBusy=true;
+  try{
+    const {data,error}=await cloudClient.from('bookmark_states').select('payload,updated_at').eq('user_id',cloudSession.user.id).maybeSingle();
+    if(error)throw error;if(!data?.payload)return false;
+    state=data.payload;state.version=VERSION;state.collapsed=state.collapsed||{};state.settings=state.settings||{};localStorage.setItem(STORAGE_KEY,JSON.stringify(state));render();return true
+  }catch(err){console.error('Cloud pull failed',err);return false}finally{cloudBusy=false}
+}
+function scheduleCloudSync(){
+  if(!cloudReady||!cloudSession||!state.settings?.cloudAutoSync)return;
+  clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>cloudPush(),1200);
+}
+function openCloud(){updateCloudUI();els.cloudDialog?.showModal()}
+if($('#cloudBtn'))$('#cloudBtn').onclick=openCloud;if($('#closeCloud'))$('#closeCloud').onclick=()=>els.cloudDialog.close();
+if($('#cloudLoginBtn'))$('#cloudLoginBtn').onclick=async()=>{if(!cloudClient)return;const email=$('#cloudEmail').value.trim();if(!email)return alert('Indique une adresse e-mail.');const {error}=await cloudClient.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});if(error)return alert(error.message);alert('Lien de connexion envoyé par e-mail.')};
+if($('#cloudLogoutBtn'))$('#cloudLogoutBtn').onclick=async()=>{if(cloudClient)await cloudClient.auth.signOut();cloudSession=null;updateCloudUI()};
+if($('#cloudPushBtn'))$('#cloudPushBtn').onclick=async()=>{const ok=await cloudPush();alert(ok?'Sauvegarde cloud envoyée.':'Échec de la sauvegarde cloud.')};
+if($('#cloudPullBtn'))$('#cloudPullBtn').onclick=async()=>{if(!confirm('Remplacer les données locales par la sauvegarde cloud ?'))return;const ok=await cloudPull();alert(ok?'Sauvegarde cloud chargée.':'Aucune sauvegarde cloud disponible ou erreur.')};
+if($('#cloudAutoSync'))$('#cloudAutoSync').onchange=e=>{state.settings.cloudAutoSync=e.target.checked;save();updateCloudUI()};
+
 function openTools(){const d=duplicateGroups();$('#toolsContent').innerHTML=`<div class="tool-row"><div><div class="tool-label">Doublons</div><div class="tool-note">${d.length?d.length+' URL en double':'Aucun doublon détecté'}</div>${d.length?'<ul class="duplicate-list">'+d.map(g=>'<li>'+g.map(x=>esc(x.name)).join(' / ')+'</li>').join('')+'</ul>':''}</div></div><div class="tool-row"><div><div class="tool-label">Raccourcis</div><div class="tool-note">Ctrl/⌘ K recherche · N nouveau favori · P pages · T thème</div></div></div><div class="tool-row"><div><div class="tool-label">Données locales</div><div class="tool-note">${state.pages.length} pages · ${state.bookmarks.length} favoris · version ${VERSION}</div></div></div>`;els.toolsDialog.showModal()}
 $('#toolsBtn').onclick=openTools;$('#closeTools').onclick=()=>els.toolsDialog.close();
 function openDrawer(){els.drawer.classList.add('open');els.backdrop.classList.add('show');els.drawer.setAttribute('aria-hidden','false')}function closeDrawer(){els.drawer.classList.remove('open');els.backdrop.classList.remove('show');els.drawer.setAttribute('aria-hidden','true')}
@@ -80,4 +130,5 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
 document.documentElement.dataset.theme=localStorage.getItem(THEME_KEY)||'dark';$('#themeToggle').onclick=toggleTheme;
 $('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bookmarks-backup.json';a.click();URL.revokeObjectURL(a.href)};
 $('#importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x.pages||!x.bookmarks)throw 0;if(confirm('Remplacer les données actuelles par cette sauvegarde ?')){state=x;state.version=VERSION;state.collapsed=state.collapsed||{};state.settings=state.settings||{note:''};render()}}catch{alert('Fichier de sauvegarde invalide.')}};
+initCloud();
 render();
