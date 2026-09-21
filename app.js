@@ -1,6 +1,6 @@
 const STORAGE_KEY='snakebond-bookmarks-v01';
 const THEME_KEY='snakebond-bookmarks-theme';
-const VERSION='0.6';
+const VERSION='0.7';
 
 const seed={
   version:VERSION,activePageId:'ai-studio',view:'grid',collapsed:{},settings:{note:''},
@@ -27,11 +27,11 @@ const seed={
 function bm(id,name,url,pageId,category,subcategory,group,description,tags,pinned,status){return{id,name,url,pageId,category,subcategory,group,description,tags:tags.split(','),pinned,status,createdAt:new Date().toISOString()}}
 function uid(prefix='id'){return prefix+'-'+Math.random().toString(36).slice(2,10)}
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));if(!x||!x.pages||!x.bookmarks)throw 0;x.version=VERSION;x.collapsed=x.collapsed||{};x.settings=x.settings||{note:''};return x}catch{return clone(seed)}}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));if(!x||!x.pages||!x.bookmarks)throw 0;x.version=VERSION;x.collapsed=x.collapsed||{};x.settings=x.settings||{note:''};x.settings.pageWidgets=x.settings.pageWidgets||{};x.settings.pageNotes=x.settings.pageNotes||{};x.settings.searchEngine=x.settings.searchEngine||'google';return x}catch{return clone(seed)}}
 let state=load();
 let cloudClient=null,cloudSession=null,cloudReady=false,cloudTimer=null,cloudBusy=false;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const els={pageTabs:$('#pageTabs'),content:$('#content'),widgets:$('#widgets'),search:$('#searchInput'),scope:$('#scopeSelect'),view:$('#viewSelect'),drawer:$('#pagesDrawer'),backdrop:$('#backdrop'),drawerPages:$('#drawerPages'),pageSearch:$('#pageSearch'),bookmarkDialog:$('#bookmarkDialog'),bookmarkForm:$('#bookmarkForm'),pageDialog:$('#pageDialog'),pageForm:$('#pageForm'),toolsDialog:$('#toolsDialog'),cloudDialog:$('#cloudDialog')};
+const els={pageTabs:$('#pageTabs'),content:$('#content'),widgets:$('#widgets'),search:$('#searchInput'),scope:$('#scopeSelect'),view:$('#viewSelect'),drawer:$('#pagesDrawer'),backdrop:$('#backdrop'),drawerPages:$('#drawerPages'),pageSearch:$('#pageSearch'),bookmarkDialog:$('#bookmarkDialog'),bookmarkForm:$('#bookmarkForm'),pageDialog:$('#pageDialog'),pageForm:$('#pageForm'),toolsDialog:$('#toolsDialog'),cloudDialog:$('#cloudDialog'),widgetDialog:$('#widgetDialog')};
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));scheduleCloudSync()}
 function esc(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function currentPage(){return state.pages.find(p=>p.id===state.activePageId)||state.pages[0]}
@@ -55,7 +55,32 @@ function wirePageReorder(){
   });
 }
 function switchPage(id){state.activePageId=id;els.search.value='';render()}
-function renderWidgets(){const page=currentPage();const pageItems=state.bookmarks.filter(b=>b.pageId===page?.id),count=pageItems.length,pins=pageItems.filter(b=>b.pinned).length;const most=[...pageItems].sort((a,b)=>(b.visitCount||0)-(a.visitCount||0))[0];const recent=[...pageItems].filter(b=>b.lastUsedAt).sort((a,b)=>new Date(b.lastUsedAt)-new Date(a.lastUsedAt))[0];els.widgets.innerHTML=`<div class="widget"><div class="widget-title">Heure</div><div id="clockWidget" class="widget-value"></div></div><div class="widget"><div class="widget-title">Page</div><div class="widget-value">${esc(page?.name||'')}</div><div class="tool-note">${count} favoris · ${pins} épinglés</div></div><div class="widget"><div class="widget-title">Plus utilisé</div><div class="widget-value">${esc(most?.name||'—')}</div><div class="tool-note">${most?.visitCount||0} ouverture${(most?.visitCount||0)>1?'s':''}</div></div><div class="widget"><div class="widget-title">Dernier utilisé</div><div class="widget-value">${esc(recent?.name||'—')}</div><div class="tool-note">${recent?.lastUsedAt?new Date(recent.lastUsedAt).toLocaleString('fr-FR'):'Aucun historique'}</div></div><div class="widget"><div class="widget-title">Note rapide</div><textarea id="quickNote" class="widget-note" placeholder="Une note temporaire…">${esc(state.settings.note||'')}</textarea></div>`;tickClock();$('#quickNote').oninput=e=>{state.settings.note=e.target.value;save()}}
+function widgetConfig(pageId){return state.settings.pageWidgets[pageId]||['clock','stats','most','recent','note']}
+function calendarWidgetHtml(){
+  const d=new Date(),y=d.getFullYear(),m=d.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),offset=(first+6)%7;
+  const names=['L','M','M','J','V','S','D'];let cells=names.map(n=>'<b>'+n+'</b>');
+  for(let i=0;i<offset;i++)cells.push('<span></span>');
+  for(let day=1;day<=days;day++)cells.push('<span class="'+(day===d.getDate()?'today':'')+'">'+day+'</span>');
+  return '<div class="mini-cal">'+cells.join('')+'</div>';
+}
+function renderWidgets(){
+  const page=currentPage(),pageItems=state.bookmarks.filter(b=>b.pageId===page?.id),count=pageItems.length,pins=pageItems.filter(b=>b.pinned).length;
+  const most=[...pageItems].sort((a,b)=>(b.visitCount||0)-(a.visitCount||0))[0],recent=[...pageItems].filter(b=>b.lastUsedAt).sort((a,b)=>new Date(b.lastUsedAt)-new Date(a.lastUsedAt))[0];
+  const cfg=widgetConfig(page?.id),parts=[];
+  for(const type of cfg){
+    if(type==='clock')parts.push('<div class="widget"><div class="widget-title">Heure</div><div id="clockWidget" class="widget-value"></div></div>');
+    if(type==='stats')parts.push(`<div class="widget"><div class="widget-title">Page</div><div class="widget-value">${esc(page?.name||'')}</div><div class="tool-note">${count} favoris · ${pins} épinglés</div></div>`);
+    if(type==='most')parts.push(`<div class="widget"><div class="widget-title">Plus utilisé</div><div class="widget-value">${esc(most?.name||'—')}</div><div class="tool-note">${most?.visitCount||0} ouverture${(most?.visitCount||0)>1?'s':''}</div></div>`);
+    if(type==='recent')parts.push(`<div class="widget"><div class="widget-title">Dernier utilisé</div><div class="widget-value">${esc(recent?.name||'—')}</div><div class="tool-note">${recent?.lastUsedAt?new Date(recent.lastUsedAt).toLocaleString('fr-FR'):'Aucun historique'}</div></div>`);
+    if(type==='note')parts.push(`<div class="widget"><div class="widget-title">Note rapide</div><textarea id="quickNote" class="widget-note" placeholder="Une note pour cette page…">${esc(state.settings.pageNotes[page?.id]||state.settings.note||'')}</textarea></div>`);
+    if(type==='search')parts.push('<div class="widget"><div class="widget-title">Recherche web</div><form id="webSearchForm" class="web-search"><input id="webSearchInput" placeholder="Rechercher…"><button class="btn primary">Go</button></form></div>');
+    if(type==='calendar')parts.push('<div class="widget"><div class="widget-title">Calendrier</div>'+calendarWidgetHtml()+'</div>');
+  }
+  els.widgets.innerHTML=parts.join('');
+  tickClock();
+  const note=$('#quickNote');if(note)note.oninput=e=>{state.settings.pageNotes[page.id]=e.target.value;save()};
+  const form=$('#webSearchForm');if(form)form.onsubmit=e=>{e.preventDefault();const q=$('#webSearchInput').value.trim();if(!q)return;const engines={google:'https://www.google.com/search?q=',duckduckgo:'https://duckduckgo.com/?q=',bing:'https://www.bing.com/search?q='};window.open((engines[state.settings.searchEngine]||engines.google)+encodeURIComponent(q),'_blank','noopener')};
+}
 function tickClock(){const e=$('#clockWidget');if(e)e.textContent=new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date())}
 setInterval(tickClock,1000);
 function filteredBookmarks(){const q=els.search.value.trim().toLowerCase();let arr=els.scope.value==='all'?state.bookmarks:state.bookmarks.filter(b=>b.pageId===state.activePageId);if(q)arr=arr.filter(b=>[b.name,b.url,b.category,b.subcategory,b.group,b.description,...(b.tags||[])].join(' ').toLowerCase().includes(q));return arr.sort((a,b)=>(b.pinned-a.pinned)||a.name.localeCompare(b.name))}
@@ -235,7 +260,12 @@ async function checkCurrentPageLinks(){
   await Promise.all(Array.from({length:Math.min(3,list.length)},()=>worker()));
   render();openTools();
 }
-function openTools(){const d=duplicateGroups(),pageItems=state.bookmarks.filter(b=>b.pageId===state.activePageId),checked=pageItems.filter(b=>b.linkHealth),bad=checked.filter(b=>!b.linkHealth.ok);$('#toolsContent').innerHTML=`<div class="tool-row"><div><div class="tool-label">Favoris navigateur</div><div class="tool-note">Importer Chrome / Edge / Firefox ou exporter en HTML standard</div></div><div><button id="browserImportBtn" class="btn secondary">Importer</button> <button id="browserExportBtn" class="btn secondary">Exporter</button></div></div><div class="tool-row"><div><div class="tool-label">Santé des liens</div><div class="tool-note">${checked.length}/${pageItems.length} vérifiés · ${bad.length} problème${bad.length>1?'s':''}</div></div><button id="checkLinksBtn" class="btn secondary">Vérifier la page</button></div><div class="tool-row"><div><div class="tool-label">Doublons</div><div class="tool-note">${d.length?d.length+' URL en double':'Aucun doublon détecté'}</div>${d.length?'<ul class="duplicate-list">'+d.map(g=>'<li>'+g.map(x=>esc(x.name)).join(' / ')+'</li>').join('')+'</ul>':''}</div></div><div class="tool-row"><div><div class="tool-label">Raccourcis</div><div class="tool-note">Ctrl/⌘ K recherche · N nouveau favori · P pages · T thème</div></div></div><div class="tool-row"><div><div class="tool-label">Données locales</div><div class="tool-note">${state.pages.length} pages · ${state.bookmarks.length} favoris · version ${VERSION}</div></div></div>`;els.toolsDialog.showModal();const b=$('#checkLinksBtn');if(b)b.onclick=checkCurrentPageLinks;const ib=$('#browserImportBtn');if(ib)ib.onclick=()=>$('#browserImportInput').click();const eb=$('#browserExportBtn');if(eb)eb.onclick=exportBrowserHtml}
+function openWidgetSettings(){
+  const cfg=new Set(widgetConfig(state.activePageId));$('input[name="widgetType"]').forEach(x=>x.checked=cfg.has(x.value));$('#searchEngine').value=state.settings.searchEngine||'google';els.widgetDialog.showModal()
+}
+if($('#closeWidgets'))$('#closeWidgets').onclick=()=>els.widgetDialog.close();
+if($('#saveWidgetsBtn'))$('#saveWidgetsBtn').onclick=()=>{state.settings.pageWidgets[state.activePageId]=$('input[name="widgetType"]:checked').map(x=>x.value);state.settings.searchEngine=$('#searchEngine').value;els.widgetDialog.close();render()};
+function openTools(){const d=duplicateGroups(),pageItems=state.bookmarks.filter(b=>b.pageId===state.activePageId),checked=pageItems.filter(b=>b.linkHealth),bad=checked.filter(b=>!b.linkHealth.ok);$('#toolsContent').innerHTML=`<div class="tool-row"><div><div class="tool-label">Widgets</div><div class="tool-note">Choisir les widgets affichés sur cette page</div></div><button id="widgetsBtn" class="btn secondary">Configurer</button></div><div class="tool-row"><div><div class="tool-label">Favoris navigateur</div><div class="tool-note">Importer Chrome / Edge / Firefox ou exporter en HTML standard</div></div><div><button id="browserImportBtn" class="btn secondary">Importer</button> <button id="browserExportBtn" class="btn secondary">Exporter</button></div></div><div class="tool-row"><div><div class="tool-label">Santé des liens</div><div class="tool-note">${checked.length}/${pageItems.length} vérifiés · ${bad.length} problème${bad.length>1?'s':''}</div></div><button id="checkLinksBtn" class="btn secondary">Vérifier la page</button></div><div class="tool-row"><div><div class="tool-label">Doublons</div><div class="tool-note">${d.length?d.length+' URL en double':'Aucun doublon détecté'}</div>${d.length?'<ul class="duplicate-list">'+d.map(g=>'<li>'+g.map(x=>esc(x.name)).join(' / ')+'</li>').join('')+'</ul>':''}</div></div><div class="tool-row"><div><div class="tool-label">Raccourcis</div><div class="tool-note">Ctrl/⌘ K recherche · N nouveau favori · P pages · T thème</div></div></div><div class="tool-row"><div><div class="tool-label">Données locales</div><div class="tool-note">${state.pages.length} pages · ${state.bookmarks.length} favoris · version ${VERSION}</div></div></div>`;els.toolsDialog.showModal();const b=$('#checkLinksBtn');if(b)b.onclick=checkCurrentPageLinks;const ib=$('#browserImportBtn');if(ib)ib.onclick=()=>$('#browserImportInput').click();const eb=$('#browserExportBtn');if(eb)eb.onclick=exportBrowserHtml;const wb=$('#widgetsBtn');if(wb)wb.onclick=openWidgetSettings}
 $('#toolsBtn').onclick=openTools;$('#closeTools').onclick=()=>els.toolsDialog.close();
 function openDrawer(){els.drawer.classList.add('open');els.backdrop.classList.add('show');els.drawer.setAttribute('aria-hidden','false')}function closeDrawer(){els.drawer.classList.remove('open');els.backdrop.classList.remove('show');els.drawer.setAttribute('aria-hidden','true')}
 $('#pagesMenuBtn').onclick=openDrawer;$('#closeDrawer').onclick=closeDrawer;els.backdrop.onclick=closeDrawer;els.pageSearch.oninput=renderDrawer;els.search.oninput=renderContent;els.scope.onchange=renderContent;els.view.value=state.view||'grid';els.view.onchange=()=>{state.view=els.view.value;render()};
