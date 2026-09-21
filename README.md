@@ -1,44 +1,42 @@
-# Bookmarks v0.7
+# Bookmarks v0.8
 
 Gestionnaire personnel de favoris et pages de démarrage de SnakeBonD.
 
 Production : https://bookmarks.snakebond.net
 
 ## Fonctions principales
-- Plusieurs pages de démarrage
+- Pages de démarrage multiples
 - Hiérarchie Page → Catégorie → Sous-catégorie → Groupe → Favori
 - Gestion complète des pages et favoris
-- Réorganisation des pages par glisser-déposer
-- Recherche locale ou globale
-- Import / export JSON
-- Import / export des favoris navigateur HTML
-- Détection des doublons
-- Vérification sécurisée des liens
+- Import/export JSON et favoris navigateur HTML
+- Détection des doublons et liens cassés
 - Historique d’utilisation
 - Suggestions locales de classement
-- Synchronisation cloud Supabase facultative
-- PWA installable et interface disponible hors ligne
+- Synchronisation Supabase facultative
+- PWA installable et mode hors ligne
 - Widgets configurables par page
+- Widget RSS sécurisé
 
-## Bibliothèque de widgets
-Chaque page peut afficher indépendamment :
-- horloge
-- statistiques de la page
-- favori le plus utilisé
-- dernier favori utilisé
-- note rapide propre à la page
-- recherche web
-- calendrier mensuel
+## Widgets disponibles
+- Horloge
+- Statistiques
+- Plus utilisé
+- Dernier utilisé
+- Note rapide
+- Recherche web
+- Calendrier
+- Flux RSS
 
-Le moteur de recherche du widget peut être Google, DuckDuckGo ou Bing.
+Le widget RSS utilise `/api/fetch-rss`, une fonction Vercel qui revalide le DNS et les redirections avant chaque accès.
 
-Configuration : **Outils → Widgets → Configurer**.
-
-## Correctif v0.7
-La v0.7 corrige aussi une régression de sélecteurs DOM introduite précédemment dans la gestion du menu des pages et le suivi des clics. Un test statique de non-régression a été ajouté.
-
-## Synchronisation Supabase
-Le cloud reste facultatif. Sans projet Supabase dédié, Bookmarks fonctionne intégralement en localStorage.
+## Sécurité RSS
+- HTTP/HTTPS uniquement
+- blocage des identifiants dans l’URL
+- blocage localhost et réseaux privés
+- validation DNS
+- validation de chaque redirection
+- timeout
+- taille maximale du flux : 1 MiB
 
 ## Développement
 ```bash
@@ -46,14 +44,11 @@ npm run check
 npm test
 ```
 
-## Sécurité
-- RLS stricte pour le cloud
-- aucune clé service role dans le navigateur
-- vérificateur de liens protégé contre SSRF
-- aucune route API mise en cache par le service worker
+## Cloud
+La synchronisation Supabase reste facultative. Bookmarks continue à fonctionner en localStorage si elle n’est pas configurée.
 
 ## Prochaines pistes
-- widgets RSS
 - sauvegardes versionnées
-- personnalisation des colonnes et tableaux
-- activation Supabase en production
+- restauration de snapshots
+- personnalisation avancée de l’apparence des pages
+- finalisation v1.0
