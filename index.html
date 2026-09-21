@@ -5,16 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0f172a" />
   <meta name="description" content="Bookmarks — gestionnaire personnel de favoris et pages de démarrage." />
-  <title>Bookmarks v0.2</title>
+  <title>Bookmarks v0.3</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔖</text></svg>">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v0.2</span></div>
+      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v0.3</span></div>
       <div class="top-actions">
         <button id="themeToggle" class="icon-btn" title="Changer de thème">◐</button>
+        <button id="cloudBtn" class="btn secondary" title="Synchronisation cloud">☁ Cloud</button>
         <button id="toolsBtn" class="btn secondary">Outils</button>
         <button id="exportBtn" class="btn secondary">Exporter</button>
         <label class="btn secondary file-btn">Importer<input id="importInput" type="file" accept="application/json" hidden></label>
@@ -105,11 +106,31 @@
     </form>
   </dialog>
 
+  <dialog id="cloudDialog" class="modal small">
+    <form id="cloudForm">
+      <div class="modal-head"><h2>Synchronisation cloud</h2><button type="button" id="closeCloud" class="icon-btn">✕</button></div>
+      <div id="cloudStatus" class="cloud-status"></div>
+      <div id="cloudAuthArea">
+        <label>Email<input id="cloudEmail" type="email" placeholder="vous@exemple.com"></label>
+        <button id="cloudLoginBtn" type="button" class="btn primary full">Recevoir un lien de connexion</button>
+      </div>
+      <div id="cloudSignedArea" class="hidden">
+        <div class="tool-row"><div><div class="tool-label">Compte</div><div id="cloudUser" class="tool-note"></div></div></div>
+        <div class="cloud-actions">
+          <button id="cloudPullBtn" type="button" class="btn secondary">Télécharger</button>
+          <button id="cloudPushBtn" type="button" class="btn primary">Envoyer</button>
+          <button id="cloudLogoutBtn" type="button" class="btn danger">Déconnexion</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="toolsDialog" class="modal small">
     <div class="modal-head"><h2>Outils</h2><button type="button" id="closeTools" class="icon-btn">✕</button></div>
     <div id="toolsContent" class="tools-content"></div>
   </dialog>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
 </html>
