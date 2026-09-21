@@ -1,0 +1,9 @@
+{
+  "name": "bookmarks",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "check": "node --check app.js",
+    "test": "node tests/smoke-test.cjs"
+  }
+}
