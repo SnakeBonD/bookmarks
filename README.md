@@ -1,35 +1,54 @@
-# Bookmarks v0.1
+# Bookmarks v0.2
 
-Prototype fonctionnel du gestionnaire personnel de favoris de SnakeBonD.
+Gestionnaire personnel de favoris et pages de démarrage de SnakeBonD.
 
-## Fonctions incluses
+Production : https://bookmarks.snakebond.net
+
+## Fonctions principales
 - Plusieurs pages de démarrage
-- Structure Page → Catégorie → Sous-catégorie → Groupe → Favori
-- Ajout / modification des favoris
-- Recherche page courante ou globale
+- Hiérarchie Page → Catégorie → Sous-catégorie → Groupe → Favori
+- Ajout, modification et suppression des favoris
+- Création, modification, duplication et suppression des pages
+- Modèles de pages : vide, AI Tools Hub, développement, domotique
+- Recherche sur la page courante ou sur toutes les pages
 - Favoris épinglés
 - Grille / liste
-- Drag & drop simple entre favoris
+- Drag & drop simple
+- Catégories repliables
+- Détection des URLs en double
+- Favicon automatique
+- Widgets locaux : heure, statistiques de page, note rapide
+- Raccourcis clavier
 - Thème clair / sombre
-- Sauvegarde locale via localStorage
+- Sauvegarde locale
 - Import / export JSON
 - Responsive desktop / smartphone
-- Pages exemples inspirées de l'organisation Notion de SnakeBonD
 
-## Lancer
-Ouvrir `index.html` dans un navigateur moderne ou servir le dossier avec un serveur HTTP statique.
+## Raccourcis
+- Ctrl/⌘ + K : recherche
+- N : nouveau favori
+- P : menu des pages
+- T : changer de thème
 
-Exemple :
+## Développement
+```bash
+npm run check
+npm test
+```
+
+Le site est statique et peut aussi être servi avec :
 
 ```bash
 python -m http.server 8080
 ```
 
-Puis ouvrir `http://localhost:8080`.
+## Roadmap
+### v0.3
+- Synchronisation multi-appareils
+- Authentification
+- Supabase PostgreSQL + RLS
 
-## Limites v0.1
-- Création/édition/suppression avancée de catégories et groupes encore indirecte via les favoris
-- Pas encore de Supabase / synchronisation cloud
-- Pas encore de widgets
-- Pas encore de vérificateur automatique des liens cassés
-- Pas encore de suppression de pages dans l'interface
+### v0.4
+- Maintenance intelligente du catalogue
+- Vérification avancée des liens
+- Suggestions de classement et d’alternatives
