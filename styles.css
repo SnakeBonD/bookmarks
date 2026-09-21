@@ -32,3 +32,8 @@ button,input,select,textarea{font:inherit}.app-shell{min-height:100vh}.topbar,.p
 #cloudAuthArea label{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;font-size:13px;color:var(--muted)}
 #cloudAuthArea input{width:100%;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:9px;padding:10px}
 .sync-ok{color:#0f9d58}.sync-warn{color:#c77d00}
+
+.health{display:inline-grid;place-items:center;min-width:17px;height:17px;border-radius:999px;font-size:10px;font-weight:900;vertical-align:1px;margin-left:3px}
+.health-ok{background:rgba(15,157,88,.14);color:#0f9d58;border:1px solid rgba(15,157,88,.35)}
+.health-bad{background:rgba(180,35,24,.12);color:#d92d20;border:1px solid rgba(180,35,24,.35)}
+#smartSuggestBtn{width:100%;text-align:left}
