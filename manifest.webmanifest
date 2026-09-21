@@ -1,0 +1,18 @@
+{
+  "name": "Bookmarks",
+  "short_name": "Bookmarks",
+  "description": "Gestionnaire personnel de favoris et pages de démarrage SnakeBonD.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#10151d",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
