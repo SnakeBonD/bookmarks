@@ -1,4 +1,4 @@
-# Bookmarks v0.6
+# Bookmarks v0.7
 
 Gestionnaire personnel de favoris et pages de démarrage de SnakeBonD.
 
@@ -8,45 +8,37 @@ Production : https://bookmarks.snakebond.net
 - Plusieurs pages de démarrage
 - Hiérarchie Page → Catégorie → Sous-catégorie → Groupe → Favori
 - Gestion complète des pages et favoris
-- Modèles de pages
 - Réorganisation des pages par glisser-déposer
 - Recherche locale ou globale
-- Favoris épinglés
-- Grille / liste
-- Catégories repliables
-- Détection des doublons
-- Favicon automatique
-- Widgets locaux
-- Raccourcis clavier
-- Thème clair / sombre
 - Import / export JSON
-- Import / export des favoris navigateur au format HTML
-- Synchronisation cloud Supabase facultative
+- Import / export des favoris navigateur HTML
+- Détection des doublons
+- Vérification sécurisée des liens
 - Historique d’utilisation
 - Suggestions locales de classement
-- Vérification sécurisée des liens
-- PWA installable
-- Cache hors ligne de l’interface
-- Indicateur en ligne / hors ligne
+- Synchronisation cloud Supabase facultative
+- PWA installable et interface disponible hors ligne
+- Widgets configurables par page
 
-## PWA et mode hors ligne
-Le service worker met en cache l’interface de Bookmarks. Les favoris et préférences sont déjà stockés localement dans le navigateur, ce qui permet de continuer à consulter et organiser les données même sans connexion.
+## Bibliothèque de widgets
+Chaque page peut afficher indépendamment :
+- horloge
+- statistiques de la page
+- favori le plus utilisé
+- dernier favori utilisé
+- note rapide propre à la page
+- recherche web
+- calendrier mensuel
 
-Les routes `/api/*` et les ressources externes ne sont jamais mises en cache par le service worker.
+Le moteur de recherche du widget peut être Google, DuckDuckGo ou Bing.
 
-Le bouton **Installer** apparaît lorsque le navigateur autorise l’installation de la PWA.
+Configuration : **Outils → Widgets → Configurer**.
 
-## Import depuis un navigateur
-Ouvrir **Outils → Favoris navigateur → Importer** puis sélectionner le fichier HTML exporté depuis Chrome, Edge ou Firefox.
+## Correctif v0.7
+La v0.7 corrige aussi une régression de sélecteurs DOM introduite précédemment dans la gestion du menu des pages et le suivi des clics. Un test statique de non-régression a été ajouté.
 
 ## Synchronisation Supabase
-La synchronisation cloud reste facultative. Sans configuration Supabase, Bookmarks fonctionne intégralement en localStorage.
-
-Pour l’activer :
-1. créer un projet Supabase dédié ;
-2. appliquer `supabase/migrations/001_bookmark_states.sql` ;
-3. configurer `SUPABASE_URL` et `SUPABASE_PUBLISHABLE_KEY` dans Vercel ;
-4. autoriser `https://bookmarks.snakebond.net` dans Supabase Auth.
+Le cloud reste facultatif. Sans projet Supabase dédié, Bookmarks fonctionne intégralement en localStorage.
 
 ## Développement
 ```bash
@@ -55,14 +47,13 @@ npm test
 ```
 
 ## Sécurité
-- RLS stricte pour la synchronisation cloud
+- RLS stricte pour le cloud
 - aucune clé service role dans le navigateur
 - vérificateur de liens protégé contre SSRF
-- cache PWA limité à l’application statique
-- aucune route API sensible mise en cache
+- aucune route API mise en cache par le service worker
 
 ## Prochaines pistes
-- widgets RSS et calendrier
-- personnalisation avancée des tableaux
+- widgets RSS
 - sauvegardes versionnées
+- personnalisation des colonnes et tableaux
 - activation Supabase en production
