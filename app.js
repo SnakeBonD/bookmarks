@@ -1,6 +1,6 @@
 const STORAGE_KEY='snakebond-bookmarks-v01';
 const THEME_KEY='snakebond-bookmarks-theme';
-const VERSION='0.7';
+const VERSION='0.8';
 
 const seed={
   version:VERSION,activePageId:'ai-studio',view:'grid',collapsed:{},settings:{note:''},
@@ -27,7 +27,7 @@ const seed={
 function bm(id,name,url,pageId,category,subcategory,group,description,tags,pinned,status){return{id,name,url,pageId,category,subcategory,group,description,tags:tags.split(','),pinned,status,createdAt:new Date().toISOString()}}
 function uid(prefix='id'){return prefix+'-'+Math.random().toString(36).slice(2,10)}
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));if(!x||!x.pages||!x.bookmarks)throw 0;x.version=VERSION;x.collapsed=x.collapsed||{};x.settings=x.settings||{note:''};x.settings.pageWidgets=x.settings.pageWidgets||{};x.settings.pageNotes=x.settings.pageNotes||{};x.settings.searchEngine=x.settings.searchEngine||'google';return x}catch{return clone(seed)}}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));if(!x||!x.pages||!x.bookmarks)throw 0;x.version=VERSION;x.collapsed=x.collapsed||{};x.settings=x.settings||{note:''};x.settings.pageWidgets=x.settings.pageWidgets||{};x.settings.pageNotes=x.settings.pageNotes||{};x.settings.searchEngine=x.settings.searchEngine||'google';x.settings.rssUrls=x.settings.rssUrls||{};return x}catch{return clone(seed)}}
 let state=load();
 let cloudClient=null,cloudSession=null,cloudReady=false,cloudTimer=null,cloudBusy=false;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -75,12 +75,35 @@ function renderWidgets(){
     if(type==='note')parts.push(`<div class="widget"><div class="widget-title">Note rapide</div><textarea id="quickNote" class="widget-note" placeholder="Une note pour cette page…">${esc(state.settings.pageNotes[page?.id]||state.settings.note||'')}</textarea></div>`);
     if(type==='search')parts.push('<div class="widget"><div class="widget-title">Recherche web</div><form id="webSearchForm" class="web-search"><input id="webSearchInput" placeholder="Rechercher…"><button class="btn primary">Go</button></form></div>');
     if(type==='calendar')parts.push('<div class="widget"><div class="widget-title">Calendrier</div>'+calendarWidgetHtml()+'</div>');
+    if(type==='rss')parts.push('<div class="widget widget-rss"><div class="widget-title">Flux RSS</div><div id="rssWidgetBody" class="tool-note">Chargement…</div></div>');
   }
   els.widgets.innerHTML=parts.join('');
   tickClock();
   const note=$('#quickNote');if(note)note.oninput=e=>{state.settings.pageNotes[page.id]=e.target.value;save()};
   const form=$('#webSearchForm');if(form)form.onsubmit=e=>{e.preventDefault();const q=$('#webSearchInput').value.trim();if(!q)return;const engines={google:'https://www.google.com/search?q=',duckduckgo:'https://duckduckgo.com/?q=',bing:'https://www.bing.com/search?q='};window.open((engines[state.settings.searchEngine]||engines.google)+encodeURIComponent(q),'_blank','noopener')};
+  if(cfg.includes('rss'))loadRssWidget(page?.id);
 }
+async function loadRssWidget(pageId){
+  const body=$('#rssWidgetBody'),url=state.settings.rssUrls?.[pageId];
+  if(!body)return;
+  if(!url){body.textContent='Configure une URL RSS dans les widgets.';return}
+  try{
+    const res=await fetch('/api/fetch-rss',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const data=await res.json();if(!res.ok||!data.text)throw new Error(data.error||'rss_error');
+    const doc=new DOMParser().parseFromString(data.text,'application/xml');
+    if(doc.querySelector('parsererror'))throw new Error('xml_invalid');
+    const nodes=[...doc.querySelectorAll('item')].slice(0,5);
+    const atom=nodes.length?nodes:[...doc.querySelectorAll('entry')].slice(0,5);
+    if(!atom.length){body.textContent='Aucun article détecté.';return}
+    body.innerHTML='<div class="rss-items">'+atom.map(node=>{
+      const title=(node.querySelector('title')?.textContent||'Sans titre').trim();
+      const link=node.querySelector('link')?.getAttribute('href')||node.querySelector('link')?.textContent||'';
+      const date=(node.querySelector('pubDate, published, updated')?.textContent||'').trim();
+      return '<a class="rss-item" href="'+esc(link)+'" target="_blank" rel="noopener noreferrer"><strong>'+esc(title)+'</strong>'+(date?'<span>'+esc(new Date(date).toLocaleDateString('fr-FR'))+'</span>':'')+'</a>';
+    }).join('')+'</div>';
+  }catch(err){console.error('RSS error',err);body.textContent='Flux RSS indisponible.'}
+}
+
 function tickClock(){const e=$('#clockWidget');if(e)e.textContent=new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date())}
 setInterval(tickClock,1000);
 function filteredBookmarks(){const q=els.search.value.trim().toLowerCase();let arr=els.scope.value==='all'?state.bookmarks:state.bookmarks.filter(b=>b.pageId===state.activePageId);if(q)arr=arr.filter(b=>[b.name,b.url,b.category,b.subcategory,b.group,b.description,...(b.tags||[])].join(' ').toLowerCase().includes(q));return arr.sort((a,b)=>(b.pinned-a.pinned)||a.name.localeCompare(b.name))}
