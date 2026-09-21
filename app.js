@@ -31,7 +31,7 @@ function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));if(!x|
 let state=load();
 let cloudClient=null,cloudSession=null,cloudReady=false,cloudTimer=null,cloudBusy=false;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const els={pageTabs:$('#pageTabs'),content:$('#content'),widgets:$('#widgets'),search:$('#searchInput'),scope:$('#scopeSelect'),view:$('#viewSelect'),drawer:$('#pagesDrawer'),backdrop:$('#backdrop'),drawerPages:$('#drawerPages'),pageSearch:$('#pageSearch'),bookmarkDialog:$('#bookmarkDialog'),bookmarkForm:$('#bookmarkForm'),pageDialog:$('#pageDialog'),pageForm:$('#pageForm'),toolsDialog:$('#toolsDialog')};
+const els={pageTabs:$('#pageTabs'),content:$('#content'),widgets:$('#widgets'),search:$('#searchInput'),scope:$('#scopeSelect'),view:$('#viewSelect'),drawer:$('#pagesDrawer'),backdrop:$('#backdrop'),drawerPages:$('#drawerPages'),pageSearch:$('#pageSearch'),bookmarkDialog:$('#bookmarkDialog'),bookmarkForm:$('#bookmarkForm'),pageDialog:$('#pageDialog'),pageForm:$('#pageForm'),toolsDialog:$('#toolsDialog'),cloudDialog:$('#cloudDialog')};
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));scheduleCloudSync()}
 function esc(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function currentPage(){return state.pages.find(p=>p.id===state.activePageId)||state.pages[0]}
@@ -130,4 +130,5 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
 document.documentElement.dataset.theme=localStorage.getItem(THEME_KEY)||'dark';$('#themeToggle').onclick=toggleTheme;
 $('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bookmarks-backup.json';a.click();URL.revokeObjectURL(a.href)};
 $('#importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x.pages||!x.bookmarks)throw 0;if(confirm('Remplacer les données actuelles par cette sauvegarde ?')){state=x;state.version=VERSION;state.collapsed=state.collapsed||{};state.settings=state.settings||{note:''};render()}}catch{alert('Fichier de sauvegarde invalide.')}};
+initCloud();
 render();
