@@ -1,6 +1,7 @@
 const STORAGE_KEY='snakebond-bookmarks-v01';
 const THEME_KEY='snakebond-bookmarks-theme';
-const VERSION='0.8';
+const BACKUP_KEY='snakebond-bookmarks-backups';
+const VERSION='0.9';
 
 const seed={
   version:VERSION,activePageId:'ai-studio',view:'grid',collapsed:{},settings:{note:''},
@@ -31,7 +32,7 @@ function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));if(!x|
 let state=load();
 let cloudClient=null,cloudSession=null,cloudReady=false,cloudTimer=null,cloudBusy=false;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const els={pageTabs:$('#pageTabs'),content:$('#content'),widgets:$('#widgets'),search:$('#searchInput'),scope:$('#scopeSelect'),view:$('#viewSelect'),drawer:$('#pagesDrawer'),backdrop:$('#backdrop'),drawerPages:$('#drawerPages'),pageSearch:$('#pageSearch'),bookmarkDialog:$('#bookmarkDialog'),bookmarkForm:$('#bookmarkForm'),pageDialog:$('#pageDialog'),pageForm:$('#pageForm'),toolsDialog:$('#toolsDialog'),cloudDialog:$('#cloudDialog'),widgetDialog:$('#widgetDialog')};
+const els={pageTabs:$('#pageTabs'),content:$('#content'),widgets:$('#widgets'),search:$('#searchInput'),scope:$('#scopeSelect'),view:$('#viewSelect'),drawer:$('#pagesDrawer'),backdrop:$('#backdrop'),drawerPages:$('#drawerPages'),pageSearch:$('#pageSearch'),bookmarkDialog:$('#bookmarkDialog'),bookmarkForm:$('#bookmarkForm'),pageDialog:$('#pageDialog'),pageForm:$('#pageForm'),toolsDialog:$('#toolsDialog'),cloudDialog:$('#cloudDialog'),widgetDialog:$('#widgetDialog'),backupDialog:$('#backupDialog')};
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));scheduleCloudSync()}
 function esc(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function currentPage(){return state.pages.find(p=>p.id===state.activePageId)||state.pages[0]}
@@ -130,7 +131,7 @@ function openPage(id){const p=id?state.pages.find(x=>x.id===id):null;els.pageFor
 $('#addPageBtn').onclick=()=>openPage();$('#drawerAddPage').onclick=()=>openPage();$$('.close-page-modal').forEach(b=>b.onclick=()=>els.pageDialog.close());
 els.pageForm.addEventListener('submit',e=>{e.preventDefault();const id=$('#pageId').value,name=$('#pageName').value.trim();if(!name)return;if(id){const p=state.pages.find(x=>x.id===id);p.name=name;p.icon=$('#pageIcon').value.trim()||'🔖'}else{const p={id:uid('page'),name,icon:$('#pageIcon').value.trim()||'🔖'};state.pages.push(p);for(const [n,u,c,s,g] of templates[$('#pageTemplate').value]||[])state.bookmarks.push({id:uid('bm'),name:n,url:u,pageId:p.id,category:c,subcategory:s,group:g,description:'',tags:[],status:'Utilisé',pinned:false,createdAt:new Date().toISOString()});state.activePageId=p.id}els.pageDialog.close();render()});
 $('#duplicatePageBtn').onclick=()=>{const id=$('#pageId').value,p=state.pages.find(x=>x.id===id);if(!p)return;const np={id:uid('page'),name:p.name+' — copie',icon:p.icon};state.pages.push(np);state.bookmarks.filter(b=>b.pageId===id).forEach(b=>state.bookmarks.push({...clone(b),id:uid('bm'),pageId:np.id,createdAt:new Date().toISOString()}));state.activePageId=np.id;els.pageDialog.close();render()};
-$('#deletePageBtn').onclick=()=>{const id=$('#pageId').value,p=state.pages.find(x=>x.id===id);if(!p||state.pages.length===1)return alert('Il faut conserver au moins une page.');const count=state.bookmarks.filter(b=>b.pageId===id).length;if(confirm(`Supprimer “${p.name}” et ses ${count} favoris ?`)){state.pages=state.pages.filter(x=>x.id!==id);state.bookmarks=state.bookmarks.filter(b=>b.pageId!==id);state.activePageId=state.pages[0].id;els.pageDialog.close();render()}};
+$('#deletePageBtn').onclick=()=>{const id=$('#pageId').value,p=state.pages.find(x=>x.id===id);if(!p||state.pages.length===1)return alert('Il faut conserver au moins une page.');const count=state.bookmarks.filter(b=>b.pageId===id).length;if(confirm(`Supprimer “${p.name}” et ses ${count} favoris ?`)){createSnapshot('Avant suppression de page');state.pages=state.pages.filter(x=>x.id!==id);state.bookmarks=state.bookmarks.filter(b=>b.pageId!==id);state.activePageId=state.pages[0].id;els.pageDialog.close();render()}};
 
 
 function escapeHtmlText(s=''){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -194,6 +195,35 @@ function exportBrowserHtml(){
   const blob=new Blob([lines.join('\n')],{type:'text/html;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bookmarks.html';a.click();URL.revokeObjectURL(a.href);
 }
 
+
+function getBackups(){try{return JSON.parse(localStorage.getItem(BACKUP_KEY))||[]}catch{return[]}}
+function saveBackups(list){localStorage.setItem(BACKUP_KEY,JSON.stringify(list.slice(0,10)))}
+function createSnapshot(label='Snapshot manuel'){
+  const list=getBackups();
+  list.unshift({id:uid('snapshot'),label,createdAt:new Date().toISOString(),payload:clone(state)});
+  saveBackups(list);renderBackupList();
+}
+function renderBackupList(){
+  const el=$('#backupList');if(!el)return;const list=getBackups();
+  if(!list.length){el.innerHTML='<div class="empty">Aucune sauvegarde.</div>';return}
+  el.innerHTML=list.map(x=>`<div class="backup-item"><div><strong>${esc(x.label)}</strong><div class="tool-note">${new Date(x.createdAt).toLocaleString('fr-FR')}</div></div><div class="backup-actions"><button class="btn secondary" data-restore="${x.id}">Restaurer</button><button class="btn danger" data-delete-backup="${x.id}">Supprimer</button></div></div>`).join('');
+  $('[data-restore]').forEach(b=>b.onclick=()=>restoreSnapshot(b.dataset.restore));
+  $('[data-delete-backup]').forEach(b=>b.onclick=()=>deleteSnapshot(b.dataset.deleteBackup));
+}
+function openBackups(){renderBackupList();els.backupDialog.showModal()}
+function restoreSnapshot(id){
+  const snap=getBackups().find(x=>x.id===id);if(!snap)return;
+  if(!confirm('Restaurer cette sauvegarde ? Les données actuelles seront remplacées.'))return;
+  createSnapshot('Avant restauration');
+  state=clone(snap.payload);state.version=VERSION;state.settings=state.settings||{};state.collapsed=state.collapsed||{};localStorage.setItem(STORAGE_KEY,JSON.stringify(state));els.backupDialog.close();render();
+}
+function deleteSnapshot(id){
+  if(!confirm('Supprimer cette sauvegarde ?'))return;
+  saveBackups(getBackups().filter(x=>x.id!==id));renderBackupList();
+}
+if($('#closeBackups'))$('#closeBackups').onclick=()=>els.backupDialog.close();
+if($('#createSnapshotBtn'))$('#createSnapshotBtn').onclick=()=>createSnapshot();
+
 function duplicateGroups(){const m=new Map;for(const b of state.bookmarks){const k=normalizeUrl(b.url);if(!m.has(k))m.set(k,[]);m.get(k).push(b)}return[...m.values()].filter(g=>g.length>1)}
 async function initCloud(){
   try{
@@ -241,7 +271,7 @@ if($('#cloudBtn'))$('#cloudBtn').onclick=openCloud;if($('#closeCloud'))$('#close
 if($('#cloudLoginBtn'))$('#cloudLoginBtn').onclick=async()=>{if(!cloudClient)return;const email=$('#cloudEmail').value.trim();if(!email)return alert('Indique une adresse e-mail.');const {error}=await cloudClient.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});if(error)return alert(error.message);alert('Lien de connexion envoyé par e-mail.')};
 if($('#cloudLogoutBtn'))$('#cloudLogoutBtn').onclick=async()=>{if(cloudClient)await cloudClient.auth.signOut();cloudSession=null;updateCloudUI()};
 if($('#cloudPushBtn'))$('#cloudPushBtn').onclick=async()=>{const ok=await cloudPush();alert(ok?'Sauvegarde cloud envoyée.':'Échec de la sauvegarde cloud.')};
-if($('#cloudPullBtn'))$('#cloudPullBtn').onclick=async()=>{if(!confirm('Remplacer les données locales par la sauvegarde cloud ?'))return;const ok=await cloudPull();alert(ok?'Sauvegarde cloud chargée.':'Aucune sauvegarde cloud disponible ou erreur.')};
+if($('#cloudPullBtn'))$('#cloudPullBtn').onclick=async()=>{if(!confirm('Remplacer les données locales par la sauvegarde cloud ?'))return;createSnapshot('Avant restauration cloud');const ok=await cloudPull();alert(ok?'Sauvegarde cloud chargée.':'Aucune sauvegarde cloud disponible ou erreur.')};
 if($('#cloudAutoSync'))$('#cloudAutoSync').onchange=e=>{state.settings.cloudAutoSync=e.target.checked;save();updateCloudUI()};
 
 function suggestMetadata(name,url){
@@ -288,7 +318,7 @@ function openWidgetSettings(){
 }
 if($('#closeWidgets'))$('#closeWidgets').onclick=()=>els.widgetDialog.close();
 if($('#saveWidgetsBtn'))$('#saveWidgetsBtn').onclick=()=>{state.settings.pageWidgets[state.activePageId]=$('input[name="widgetType"]:checked').map(x=>x.value);state.settings.searchEngine=$('#searchEngine').value;els.widgetDialog.close();render()};
-function openTools(){const d=duplicateGroups(),pageItems=state.bookmarks.filter(b=>b.pageId===state.activePageId),checked=pageItems.filter(b=>b.linkHealth),bad=checked.filter(b=>!b.linkHealth.ok);$('#toolsContent').innerHTML=`<div class="tool-row"><div><div class="tool-label">Widgets</div><div class="tool-note">Choisir les widgets affichés sur cette page</div></div><button id="widgetsBtn" class="btn secondary">Configurer</button></div><div class="tool-row"><div><div class="tool-label">Favoris navigateur</div><div class="tool-note">Importer Chrome / Edge / Firefox ou exporter en HTML standard</div></div><div><button id="browserImportBtn" class="btn secondary">Importer</button> <button id="browserExportBtn" class="btn secondary">Exporter</button></div></div><div class="tool-row"><div><div class="tool-label">Santé des liens</div><div class="tool-note">${checked.length}/${pageItems.length} vérifiés · ${bad.length} problème${bad.length>1?'s':''}</div></div><button id="checkLinksBtn" class="btn secondary">Vérifier la page</button></div><div class="tool-row"><div><div class="tool-label">Doublons</div><div class="tool-note">${d.length?d.length+' URL en double':'Aucun doublon détecté'}</div>${d.length?'<ul class="duplicate-list">'+d.map(g=>'<li>'+g.map(x=>esc(x.name)).join(' / ')+'</li>').join('')+'</ul>':''}</div></div><div class="tool-row"><div><div class="tool-label">Raccourcis</div><div class="tool-note">Ctrl/⌘ K recherche · N nouveau favori · P pages · T thème</div></div></div><div class="tool-row"><div><div class="tool-label">Données locales</div><div class="tool-note">${state.pages.length} pages · ${state.bookmarks.length} favoris · version ${VERSION}</div></div></div>`;els.toolsDialog.showModal();const b=$('#checkLinksBtn');if(b)b.onclick=checkCurrentPageLinks;const ib=$('#browserImportBtn');if(ib)ib.onclick=()=>$('#browserImportInput').click();const eb=$('#browserExportBtn');if(eb)eb.onclick=exportBrowserHtml;const wb=$('#widgetsBtn');if(wb)wb.onclick=openWidgetSettings}
+function openTools(){const d=duplicateGroups(),pageItems=state.bookmarks.filter(b=>b.pageId===state.activePageId),checked=pageItems.filter(b=>b.linkHealth),bad=checked.filter(b=>!b.linkHealth.ok);$('#toolsContent').innerHTML=`<div class="tool-row"><div><div class="tool-label">Sauvegardes</div><div class="tool-note">Snapshots locaux versionnés (10 maximum)</div></div><button id="backupBtn" class="btn secondary">Gérer</button></div><div class="tool-row"><div><div class="tool-label">Widgets</div><div class="tool-note">Choisir les widgets affichés sur cette page</div></div><button id="widgetsBtn" class="btn secondary">Configurer</button></div><div class="tool-row"><div><div class="tool-label">Favoris navigateur</div><div class="tool-note">Importer Chrome / Edge / Firefox ou exporter en HTML standard</div></div><div><button id="browserImportBtn" class="btn secondary">Importer</button> <button id="browserExportBtn" class="btn secondary">Exporter</button></div></div><div class="tool-row"><div><div class="tool-label">Santé des liens</div><div class="tool-note">${checked.length}/${pageItems.length} vérifiés · ${bad.length} problème${bad.length>1?'s':''}</div></div><button id="checkLinksBtn" class="btn secondary">Vérifier la page</button></div><div class="tool-row"><div><div class="tool-label">Doublons</div><div class="tool-note">${d.length?d.length+' URL en double':'Aucun doublon détecté'}</div>${d.length?'<ul class="duplicate-list">'+d.map(g=>'<li>'+g.map(x=>esc(x.name)).join(' / ')+'</li>').join('')+'</ul>':''}</div></div><div class="tool-row"><div><div class="tool-label">Raccourcis</div><div class="tool-note">Ctrl/⌘ K recherche · N nouveau favori · P pages · T thème</div></div></div><div class="tool-row"><div><div class="tool-label">Données locales</div><div class="tool-note">${state.pages.length} pages · ${state.bookmarks.length} favoris · version ${VERSION}</div></div></div>`;els.toolsDialog.showModal();const b=$('#checkLinksBtn');if(b)b.onclick=checkCurrentPageLinks;const ib=$('#browserImportBtn');if(ib)ib.onclick=()=>$('#browserImportInput').click();const eb=$('#browserExportBtn');if(eb)eb.onclick=exportBrowserHtml;const wb=$('#widgetsBtn');if(wb)wb.onclick=openWidgetSettings;const bb=$('#backupBtn');if(bb)bb.onclick=openBackups}
 $('#toolsBtn').onclick=openTools;$('#closeTools').onclick=()=>els.toolsDialog.close();
 function openDrawer(){els.drawer.classList.add('open');els.backdrop.classList.add('show');els.drawer.setAttribute('aria-hidden','false')}function closeDrawer(){els.drawer.classList.remove('open');els.backdrop.classList.remove('show');els.drawer.setAttribute('aria-hidden','true')}
 $('#pagesMenuBtn').onclick=openDrawer;$('#closeDrawer').onclick=closeDrawer;els.backdrop.onclick=closeDrawer;els.pageSearch.oninput=renderDrawer;els.search.oninput=renderContent;els.scope.onchange=renderContent;els.view.value=state.view||'grid';els.view.onchange=()=>{state.view=els.view.value;render()};
@@ -296,7 +326,7 @@ function toggleTheme(){const n=document.documentElement.dataset.theme==='dark'?'
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();els.search.focus();return}if(e.target.matches('input,textarea,select'))return;if(e.key.toLowerCase()==='n')openBookmark();if(e.key.toLowerCase()==='p')openDrawer();if(e.key.toLowerCase()==='t')toggleTheme()});
 document.documentElement.dataset.theme=localStorage.getItem(THEME_KEY)||'dark';$('#themeToggle').onclick=toggleTheme;
 $('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bookmarks-backup.json';a.click();URL.revokeObjectURL(a.href)};
-$('#importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x.pages||!x.bookmarks)throw 0;if(confirm('Remplacer les données actuelles par cette sauvegarde ?')){state=x;state.version=VERSION;state.collapsed=state.collapsed||{};state.settings=state.settings||{note:''};render()}}catch{alert('Fichier de sauvegarde invalide.')}e.target.value=''};
+$('#importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x.pages||!x.bookmarks)throw 0;if(confirm('Remplacer les données actuelles par cette sauvegarde ?')){createSnapshot('Avant import JSON');state=x;state.version=VERSION;state.collapsed=state.collapsed||{};state.settings=state.settings||{note:''};render()}}catch{alert('Fichier de sauvegarde invalide.')}e.target.value=''};
 $('#browserImportInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const result=importBrowserHtml(await f.text(),state.activePageId);render();alert(`${result.added} favoris importés · ${result.skipped} doublons ignorés · ${result.found} liens détectés`)}catch(err){console.error(err);alert('Impossible de lire ce fichier de favoris.')}e.target.value=''};
 
 let deferredInstallPrompt=null;
