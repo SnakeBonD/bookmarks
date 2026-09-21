@@ -1,6 +1,6 @@
 const STORAGE_KEY='snakebond-bookmarks-v01';
 const THEME_KEY='snakebond-bookmarks-theme';
-const VERSION='0.4';
+const VERSION='0.5';
 
 const seed={
   version:VERSION,activePageId:'ai-studio',view:'grid',collapsed:{},settings:{note:''},
@@ -40,7 +40,20 @@ function normalizeUrl(url){try{const u=new URL(url);u.hash='';u.hostname=u.hostn
 function groupBy(arr,key){return arr.reduce((o,x)=>((o[x[key]||'Sans '+key]=(o[x[key]||'Sans '+key]||[])).push(x),o),{})}
 function render(){renderTabs();renderDrawer();renderWidgets();renderContent();fillPageSelect();save()}
 function renderTabs(){els.pageTabs.innerHTML=state.pages.slice(0,7).map(p=>`<button class="page-tab ${p.id===state.activePageId?'active':''}" data-page="${p.id}">${p.icon||'🔖'} ${esc(p.name)}<span class="count">${state.bookmarks.filter(b=>b.pageId===p.id).length}</span></button>`).join('');$$('.page-tab').forEach(b=>{b.onclick=()=>switchPage(b.dataset.page);b.ondblclick=()=>openPage(b.dataset.page)})}
-function renderDrawer(){const q=els.pageSearch.value.toLowerCase();els.drawerPages.innerHTML=state.pages.filter(p=>p.name.toLowerCase().includes(q)).map(p=>`<div class="drawer-item ${p.id===state.activePageId?'active':''}" data-page="${p.id}"><span>${p.icon||'🔖'}</span><strong>${esc(p.name)}</strong><span>${state.bookmarks.filter(b=>b.pageId===p.id).length}</span><button class="page-action" data-edit-page="${p.id}" title="Modifier">⋮</button></div>`).join('');$$('.drawer-item').forEach(x=>x.onclick=e=>{if(e.target.closest('[data-edit-page]'))return;switchPage(x.dataset.page);closeDrawer()});$$('[data-edit-page]').forEach(x=>x.onclick=e=>{e.stopPropagation();openPage(x.dataset.editPage)})}
+function renderDrawer(){const q=els.pageSearch.value.toLowerCase();els.drawerPages.innerHTML=state.pages.filter(p=>p.name.toLowerCase().includes(q)).map(p=>`<div class="drawer-item ${p.id===state.activePageId?'active':''}" draggable="true" data-page="${p.id}"><span>${p.icon||'🔖'}</span><strong>${esc(p.name)}</strong><span>${state.bookmarks.filter(b=>b.pageId===p.id).length}</span><button class="page-action" data-edit-page="${p.id}" title="Modifier">⋮</button></div>`).join('');$('.drawer-item').forEach(x=>x.onclick=e=>{if(e.target.closest('[data-edit-page]'))return;switchPage(x.dataset.page);closeDrawer()});$('[data-edit-page]').forEach(x=>x.onclick=e=>{e.stopPropagation();openPage(x.dataset.editPage)});wirePageReorder()}
+function wirePageReorder(){
+  let dragged=null;
+  $('.drawer-item').forEach(el=>{
+    el.addEventListener('dragstart',()=>{dragged=el.dataset.page;el.classList.add('dragging')});
+    el.addEventListener('dragend',()=>el.classList.remove('dragging'));
+    el.addEventListener('dragover',e=>e.preventDefault());
+    el.addEventListener('drop',e=>{
+      e.preventDefault();const target=el.dataset.page;if(!dragged||dragged===target)return;
+      const a=state.pages.findIndex(p=>p.id===dragged),t=state.pages.findIndex(p=>p.id===target);
+      if(a<0||t<0)return;const[item]=state.pages.splice(a,1);state.pages.splice(t,0,item);render();
+    });
+  });
+}
 function switchPage(id){state.activePageId=id;els.search.value='';render()}
 function renderWidgets(){const page=currentPage();const pageItems=state.bookmarks.filter(b=>b.pageId===page?.id),count=pageItems.length,pins=pageItems.filter(b=>b.pinned).length;const most=[...pageItems].sort((a,b)=>(b.visitCount||0)-(a.visitCount||0))[0];const recent=[...pageItems].filter(b=>b.lastUsedAt).sort((a,b)=>new Date(b.lastUsedAt)-new Date(a.lastUsedAt))[0];els.widgets.innerHTML=`<div class="widget"><div class="widget-title">Heure</div><div id="clockWidget" class="widget-value"></div></div><div class="widget"><div class="widget-title">Page</div><div class="widget-value">${esc(page?.name||'')}</div><div class="tool-note">${count} favoris · ${pins} épinglés</div></div><div class="widget"><div class="widget-title">Plus utilisé</div><div class="widget-value">${esc(most?.name||'—')}</div><div class="tool-note">${most?.visitCount||0} ouverture${(most?.visitCount||0)>1?'s':''}</div></div><div class="widget"><div class="widget-title">Dernier utilisé</div><div class="widget-value">${esc(recent?.name||'—')}</div><div class="tool-note">${recent?.lastUsedAt?new Date(recent.lastUsedAt).toLocaleString('fr-FR'):'Aucun historique'}</div></div><div class="widget"><div class="widget-title">Note rapide</div><textarea id="quickNote" class="widget-note" placeholder="Une note temporaire…">${esc(state.settings.note||'')}</textarea></div>`;tickClock();$('#quickNote').oninput=e=>{state.settings.note=e.target.value;save()}}
 function tickClock(){const e=$('#clockWidget');if(e)e.textContent=new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date())}
@@ -70,6 +83,68 @@ $('#addPageBtn').onclick=()=>openPage();$('#drawerAddPage').onclick=()=>openPage
 els.pageForm.addEventListener('submit',e=>{e.preventDefault();const id=$('#pageId').value,name=$('#pageName').value.trim();if(!name)return;if(id){const p=state.pages.find(x=>x.id===id);p.name=name;p.icon=$('#pageIcon').value.trim()||'🔖'}else{const p={id:uid('page'),name,icon:$('#pageIcon').value.trim()||'🔖'};state.pages.push(p);for(const [n,u,c,s,g] of templates[$('#pageTemplate').value]||[])state.bookmarks.push({id:uid('bm'),name:n,url:u,pageId:p.id,category:c,subcategory:s,group:g,description:'',tags:[],status:'Utilisé',pinned:false,createdAt:new Date().toISOString()});state.activePageId=p.id}els.pageDialog.close();render()});
 $('#duplicatePageBtn').onclick=()=>{const id=$('#pageId').value,p=state.pages.find(x=>x.id===id);if(!p)return;const np={id:uid('page'),name:p.name+' — copie',icon:p.icon};state.pages.push(np);state.bookmarks.filter(b=>b.pageId===id).forEach(b=>state.bookmarks.push({...clone(b),id:uid('bm'),pageId:np.id,createdAt:new Date().toISOString()}));state.activePageId=np.id;els.pageDialog.close();render()};
 $('#deletePageBtn').onclick=()=>{const id=$('#pageId').value,p=state.pages.find(x=>x.id===id);if(!p||state.pages.length===1)return alert('Il faut conserver au moins une page.');const count=state.bookmarks.filter(b=>b.pageId===id).length;if(confirm(`Supprimer “${p.name}” et ses ${count} favoris ?`)){state.pages=state.pages.filter(x=>x.id!==id);state.bookmarks=state.bookmarks.filter(b=>b.pageId!==id);state.activePageId=state.pages[0].id;els.pageDialog.close();render()}};
+
+
+function escapeHtmlText(s=''){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function importBrowserHtml(html,pageId){
+  const doc=new DOMParser().parseFromString(html,'text/html'),found=[];
+  function walk(dl,path=[]){
+    if(!dl)return;
+    const children=[...dl.children];
+    for(let i=0;i<children.length;i++){
+      const node=children[i];
+      if(node.tagName==='DT'){
+        const h=[...node.children].find(x=>x.tagName==='H3');
+        const a=[...node.children].find(x=>x.tagName==='A');
+        if(h){
+          let nested=[...node.children].find(x=>x.tagName==='DL');
+          if(!nested&&children[i+1]?.tagName==='DL')nested=children[++i];
+          walk(nested,[...path,h.textContent.trim()].filter(Boolean));
+        }else if(a?.href){
+          found.push({name:(a.textContent||a.href).trim(),url:a.href,path});
+        }
+      }else if(node.tagName==='DL')walk(node,path);
+      else{
+        const nested=node.querySelector?.(':scope > dl');if(nested)walk(nested,path);
+      }
+    }
+  }
+  const root=doc.querySelector('dl');walk(root,[]);
+  let added=0,skipped=0;const existing=new Set(state.bookmarks.map(b=>normalizeUrl(b.url)));
+  for(const item of found){
+    const url=normalizeUrl(item.url);if(existing.has(url)){skipped++;continue}
+    existing.add(url);
+    const parts=item.path.filter(Boolean),category=parts[0]||'Import navigateur',subcategory=parts[1]||'GÉNÉRAL',group=parts.slice(2).join(' / ')||'Favoris';
+    state.bookmarks.push({id:uid('bm'),name:item.name,url:item.url,pageId,category,subcategory,group,description:'Importé depuis les favoris du navigateur',tags:['import'],status:'Utilisé',pinned:false,createdAt:new Date().toISOString()});added++;
+  }
+  return{found:found.length,added,skipped};
+}
+function exportBrowserHtml(){
+  const lines=['<!DOCTYPE NETSCAPE-Bookmark-file-1>','<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">','<TITLE>Bookmarks</TITLE>','<H1>Bookmarks</H1>','<DL><p>'];
+  for(const page of state.pages){
+    lines.push(`<DT><H3>${escapeHtmlText(page.name)}</H3><DL><p>`);
+    const items=state.bookmarks.filter(b=>b.pageId===page.id);
+    const cats=groupBy(items,'category');
+    for(const [cat,catItems] of Object.entries(cats)){
+      lines.push(`<DT><H3>${escapeHtmlText(cat)}</H3><DL><p>`);
+      const subs=groupBy(catItems,'subcategory');
+      for(const [sub,subItems] of Object.entries(subs)){
+        lines.push(`<DT><H3>${escapeHtmlText(sub)}</H3><DL><p>`);
+        const groups=groupBy(subItems,'group');
+        for(const [grp,grpItems] of Object.entries(groups)){
+          lines.push(`<DT><H3>${escapeHtmlText(grp)}</H3><DL><p>`);
+          for(const b of grpItems)lines.push(`<DT><A HREF="${escapeHtmlText(b.url)}">${escapeHtmlText(b.name)}</A>`);
+          lines.push('</DL><p>');
+        }
+        lines.push('</DL><p>');
+      }
+      lines.push('</DL><p>');
+    }
+    lines.push('</DL><p>');
+  }
+  lines.push('</DL><p>');
+  const blob=new Blob([lines.join('\n')],{type:'text/html;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bookmarks.html';a.click();URL.revokeObjectURL(a.href);
+}
 
 function duplicateGroups(){const m=new Map;for(const b of state.bookmarks){const k=normalizeUrl(b.url);if(!m.has(k))m.set(k,[]);m.get(k).push(b)}return[...m.values()].filter(g=>g.length>1)}
 async function initCloud(){
@@ -160,7 +235,7 @@ async function checkCurrentPageLinks(){
   await Promise.all(Array.from({length:Math.min(3,list.length)},()=>worker()));
   render();openTools();
 }
-function openTools(){const d=duplicateGroups(),pageItems=state.bookmarks.filter(b=>b.pageId===state.activePageId),checked=pageItems.filter(b=>b.linkHealth),bad=checked.filter(b=>!b.linkHealth.ok);$('#toolsContent').innerHTML=`<div class="tool-row"><div><div class="tool-label">Santé des liens</div><div class="tool-note">${checked.length}/${pageItems.length} vérifiés · ${bad.length} problème${bad.length>1?'s':''}</div></div><button id="checkLinksBtn" class="btn secondary">Vérifier la page</button></div><div class="tool-row"><div><div class="tool-label">Doublons</div><div class="tool-note">${d.length?d.length+' URL en double':'Aucun doublon détecté'}</div>${d.length?'<ul class="duplicate-list">'+d.map(g=>'<li>'+g.map(x=>esc(x.name)).join(' / ')+'</li>').join('')+'</ul>':''}</div></div><div class="tool-row"><div><div class="tool-label">Raccourcis</div><div class="tool-note">Ctrl/⌘ K recherche · N nouveau favori · P pages · T thème</div></div></div><div class="tool-row"><div><div class="tool-label">Données locales</div><div class="tool-note">${state.pages.length} pages · ${state.bookmarks.length} favoris · version ${VERSION}</div></div></div>`;els.toolsDialog.showModal();const b=$('#checkLinksBtn');if(b)b.onclick=checkCurrentPageLinks}
+function openTools(){const d=duplicateGroups(),pageItems=state.bookmarks.filter(b=>b.pageId===state.activePageId),checked=pageItems.filter(b=>b.linkHealth),bad=checked.filter(b=>!b.linkHealth.ok);$('#toolsContent').innerHTML=`<div class="tool-row"><div><div class="tool-label">Favoris navigateur</div><div class="tool-note">Importer Chrome / Edge / Firefox ou exporter en HTML standard</div></div><div><button id="browserImportBtn" class="btn secondary">Importer</button> <button id="browserExportBtn" class="btn secondary">Exporter</button></div></div><div class="tool-row"><div><div class="tool-label">Santé des liens</div><div class="tool-note">${checked.length}/${pageItems.length} vérifiés · ${bad.length} problème${bad.length>1?'s':''}</div></div><button id="checkLinksBtn" class="btn secondary">Vérifier la page</button></div><div class="tool-row"><div><div class="tool-label">Doublons</div><div class="tool-note">${d.length?d.length+' URL en double':'Aucun doublon détecté'}</div>${d.length?'<ul class="duplicate-list">'+d.map(g=>'<li>'+g.map(x=>esc(x.name)).join(' / ')+'</li>').join('')+'</ul>':''}</div></div><div class="tool-row"><div><div class="tool-label">Raccourcis</div><div class="tool-note">Ctrl/⌘ K recherche · N nouveau favori · P pages · T thème</div></div></div><div class="tool-row"><div><div class="tool-label">Données locales</div><div class="tool-note">${state.pages.length} pages · ${state.bookmarks.length} favoris · version ${VERSION}</div></div></div>`;els.toolsDialog.showModal();const b=$('#checkLinksBtn');if(b)b.onclick=checkCurrentPageLinks;const ib=$('#browserImportBtn');if(ib)ib.onclick=()=>$('#browserImportInput').click();const eb=$('#browserExportBtn');if(eb)eb.onclick=exportBrowserHtml}
 $('#toolsBtn').onclick=openTools;$('#closeTools').onclick=()=>els.toolsDialog.close();
 function openDrawer(){els.drawer.classList.add('open');els.backdrop.classList.add('show');els.drawer.setAttribute('aria-hidden','false')}function closeDrawer(){els.drawer.classList.remove('open');els.backdrop.classList.remove('show');els.drawer.setAttribute('aria-hidden','true')}
 $('#pagesMenuBtn').onclick=openDrawer;$('#closeDrawer').onclick=closeDrawer;els.backdrop.onclick=closeDrawer;els.pageSearch.oninput=renderDrawer;els.search.oninput=renderContent;els.scope.onchange=renderContent;els.view.value=state.view||'grid';els.view.onchange=()=>{state.view=els.view.value;render()};
@@ -168,6 +243,7 @@ function toggleTheme(){const n=document.documentElement.dataset.theme==='dark'?'
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();els.search.focus();return}if(e.target.matches('input,textarea,select'))return;if(e.key.toLowerCase()==='n')openBookmark();if(e.key.toLowerCase()==='p')openDrawer();if(e.key.toLowerCase()==='t')toggleTheme()});
 document.documentElement.dataset.theme=localStorage.getItem(THEME_KEY)||'dark';$('#themeToggle').onclick=toggleTheme;
 $('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bookmarks-backup.json';a.click();URL.revokeObjectURL(a.href)};
-$('#importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x.pages||!x.bookmarks)throw 0;if(confirm('Remplacer les données actuelles par cette sauvegarde ?')){state=x;state.version=VERSION;state.collapsed=state.collapsed||{};state.settings=state.settings||{note:''};render()}}catch{alert('Fichier de sauvegarde invalide.')}};
+$('#importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x.pages||!x.bookmarks)throw 0;if(confirm('Remplacer les données actuelles par cette sauvegarde ?')){state=x;state.version=VERSION;state.collapsed=state.collapsed||{};state.settings=state.settings||{note:''};render()}}catch{alert('Fichier de sauvegarde invalide.')}e.target.value=''};
+$('#browserImportInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const result=importBrowserHtml(await f.text(),state.activePageId);render();alert(`${result.added} favoris importés · ${result.skipped} doublons ignorés · ${result.found} liens détectés`)}catch(err){console.error(err);alert('Impossible de lire ce fichier de favoris.')}e.target.value=''};
 initCloud();
 render();
