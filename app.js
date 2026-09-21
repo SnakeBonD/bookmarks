@@ -1,0 +1,90 @@
+const STORAGE_KEY = 'snakebond-bookmarks-v01';
+const THEME_KEY = 'snakebond-bookmarks-theme';
+
+const seed = {
+  activePageId: 'ai-studio',
+  view: 'grid',
+  pages: [
+    {id:'finances', name:'FINANCES', icon:'💰'},
+    {id:'ai-studio', name:'SnakeBonD AI Studio', icon:'🧠'},
+    {id:'informatique', name:'INFORMATIQUE', icon:'🖥️'},
+    {id:'smartphone', name:'SMARTPHONE', icon:'📱'},
+    {id:'photo-restoration', name:'Photo Restoration', icon:'📷'},
+    {id:'skool', name:'SKOOL', icon:'🏫'},
+    {id:'procedures', name:'PROCÉDURES', icon:'🧭'},
+    {id:'ebooks', name:'eBooks', icon:'📚'},
+    {id:'domotique', name:'DOMOTIQUE', icon:'🏠'},
+    {id:'genealogie', name:'GENEALOGIE', icon:'🗃️'}
+  ],
+  bookmarks: [
+    bm('chatgpt','ChatGPT','https://chatgpt.com','ai-studio','AI Tools Hub','TEXTE / LLM','Assistants','Assistant général et création','ai,llm',true,'Utilisé'),
+    bm('gemini','Gemini','https://gemini.google.com','ai-studio','AI Tools Hub','TEXTE / LLM','Assistants','Assistant Google et génération multimodale','ai,llm',false,'Utilisé'),
+    bm('midjourney','Midjourney','https://www.midjourney.com','ai-studio','AI Tools Hub','IMAGE','Génération','Génération d’images','image,ai',true,'Utilisé'),
+    bm('ideogram','Ideogram','https://ideogram.ai','ai-studio','AI Tools Hub','IMAGE','Génération','Images et typographie','image,design',false,'Utilisé'),
+    bm('kling','Kling AI','https://klingai.com','ai-studio','AI Tools Hub','VIDEO','Image-to-video','Génération vidéo IA','video,ai',false,'Utilisé'),
+    bm('suno','Suno','https://suno.com','ai-studio','AI Tools Hub','MUSIQUE / AUDIO','Génération','Création musicale par IA','music,audio',false,'Utilisé'),
+    bm('github','GitHub','https://github.com','informatique','Développement','CODE','Dépôts','Code et versions','dev,git',true,'Utilisé'),
+    bm('vercel','Vercel','https://vercel.com','informatique','Développement','HÉBERGEMENT','Déploiement','Déploiement web','dev,hosting',false,'Utilisé'),
+    bm('notion','Notion','https://www.notion.so','procedures','Organisation','DOCUMENTATION','Notes','Documentation et procédures','notes,docs',true,'Utilisé'),
+    bm('homeassistant','Home Assistant','https://www.home-assistant.io','domotique','Maison','DOMOTIQUE','Plateforme','Automatisation maison','home,iot',true,'Utilisé')
+  ]
+};
+
+function bm(id,name,url,pageId,category,subcategory,group,description,tags,pinned,status){
+  return {id,name,url,pageId,category,subcategory,group,description,tags:tags.split(','),pinned,status,createdAt:new Date().toISOString()};
+}
+function uid(prefix='id'){return prefix+'-'+Math.random().toString(36).slice(2,10)}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));return x&&x.pages?x:structuredClone(seed)}catch{return structuredClone(seed)}}
+let state=load();
+const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
+const els={pageTabs:$('#pageTabs'),content:$('#content'),search:$('#searchInput'),scope:$('#scopeSelect'),view:$('#viewSelect'),drawer:$('#pagesDrawer'),backdrop:$('#backdrop'),drawerPages:$('#drawerPages'),pageSearch:$('#pageSearch'),bookmarkDialog:$('#bookmarkDialog'),bookmarkForm:$('#bookmarkForm'),pageDialog:$('#pageDialog'),pageForm:$('#pageForm')};
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+function esc(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function currentPage(){return state.pages.find(p=>p.id===state.activePageId)||state.pages[0]}
+function favicon(url){try{return `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(new URL(url).origin)}&sz=64`}catch{return ''}}
+
+function render(){renderTabs();renderDrawer();renderContent();fillPageSelect();save()}
+function renderTabs(){els.pageTabs.innerHTML=state.pages.slice(0,6).map(p=>`<button class="page-tab ${p.id===state.activePageId?'active':''}" data-page="${p.id}">${p.icon||'🔖'} ${esc(p.name)}<span class="count">${state.bookmarks.filter(b=>b.pageId===p.id).length}</span></button>`).join('');$$('.page-tab').forEach(b=>b.onclick=()=>switchPage(b.dataset.page))}
+function renderDrawer(){const q=els.pageSearch.value.toLowerCase();els.drawerPages.innerHTML=state.pages.filter(p=>p.name.toLowerCase().includes(q)).map(p=>`<div class="drawer-item ${p.id===state.activePageId?'active':''}" data-page="${p.id}"><span>${p.icon||'🔖'}</span><strong>${esc(p.name)}</strong><span>${state.bookmarks.filter(b=>b.pageId===p.id).length}</span></div>`).join('');$$('.drawer-item').forEach(x=>x.onclick=()=>{switchPage(x.dataset.page);closeDrawer()})}
+function switchPage(id){state.activePageId=id;els.search.value='';render()}
+function filteredBookmarks(){const q=els.search.value.trim().toLowerCase();let arr=els.scope.value==='all'?state.bookmarks:state.bookmarks.filter(b=>b.pageId===state.activePageId);if(q)arr=arr.filter(b=>[b.name,b.url,b.category,b.subcategory,b.group,b.description,...(b.tags||[])].join(' ').toLowerCase().includes(q));return arr.sort((a,b)=>(b.pinned-a.pinned)||a.name.localeCompare(b.name))}
+function groupBy(arr,key){return arr.reduce((o,x)=>((o[x[key]||'Sans '+key]=(o[x[key]||'Sans '+key]||[])).push(x),o),{})}
+function renderContent(){const page=currentPage();const items=filteredBookmarks();const title=els.scope.value==='all'&&els.search.value?`Résultats globaux`:`${page?.icon||'🔖'} ${esc(page?.name||'Bookmarks')}`;let html=`<section class="hero"><div><h1>${title}</h1><p>${items.length} favori${items.length>1?'s':''}${els.search.value?' trouvé'+(items.length>1?'s':''):''}</p></div><div class="hero-actions"><button class="btn secondary" id="addCategoryQuick">+ Catégorie</button><button class="btn primary" id="heroAddBookmark">+ Favori</button></div></section>`;
+  if(!items.length){html+=`<div class="empty">Aucun favori ici. Ajoute ton premier lien ou modifie la recherche.</div>`;els.content.innerHTML=html;wireHero();return}
+  const cats=groupBy(items,'category');
+  for(const [cat,catItems] of Object.entries(cats)){
+    html+=`<section class="category"><div class="category-head"><div class="category-title">${esc(cat)}</div><div class="category-meta">${catItems.length} lien${catItems.length>1?'s':''}</div></div>`;
+    const subs=groupBy(catItems,'subcategory');
+    for(const [sub,subItems] of Object.entries(subs)){
+      html+=`<div class="subcategory"><div class="subcategory-head"><div class="subcategory-title">${esc(sub)}</div><span class="status">${subItems.length}</span></div>`;
+      const groups=groupBy(subItems,'group');
+      for(const [grp,grpItems] of Object.entries(groups)){
+        html+=`<div class="group" data-category="${esc(cat)}" data-subcategory="${esc(sub)}" data-group="${esc(grp)}"><div class="group-title">${esc(grp)}</div><div class="${state.view==='list'?'bookmarks-list':'bookmarks-grid'}">${grpItems.map(card).join('')}</div></div>`;
+      }
+      html+=`</div>`;
+    }
+    html+=`</section>`;
+  }
+  els.content.innerHTML=html;wireHero();wireCards();
+}
+function card(b){return `<article class="bookmark" draggable="true" data-id="${b.id}"><div class="bookmark-icon"><img src="${favicon(b.url)}" alt="" onerror="this.style.display='none';this.parentElement.textContent='🔗'"></div><div class="bookmark-main"><a class="bookmark-name" href="${esc(b.url)}" target="_blank" rel="noopener noreferrer">${b.pinned?'<span class="pin">📌</span> ':''}${esc(b.name)}</a><div class="bookmark-desc">${esc(b.description||b.url)}</div><div class="bookmark-tags">${(b.tags||[]).slice(0,3).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}<span class="status">${esc(b.status||'Utilisé')}</span></div></div><button class="bookmark-menu" data-edit="${b.id}" title="Modifier">⋮</button></article>`}
+function wireHero(){const h=$('#heroAddBookmark');if(h)h.onclick=()=>openBookmark();const c=$('#addCategoryQuick');if(c)c.onclick=()=>{openBookmark();setTimeout(()=>$('#bmCategory').focus(),50)}}
+function wireCards(){$$('[data-edit]').forEach(x=>x.onclick=e=>{e.preventDefault();openBookmark(x.dataset.edit)});let dragged=null;$$('.bookmark').forEach(el=>{el.addEventListener('dragstart',()=>{dragged=el.dataset.id;el.classList.add('dragging')});el.addEventListener('dragend',()=>el.classList.remove('dragging'));el.addEventListener('dragover',e=>e.preventDefault());el.addEventListener('drop',e=>{e.preventDefault();const target=e.currentTarget.dataset.id;if(!dragged||dragged===target)return;const a=state.bookmarks.findIndex(b=>b.id===dragged),t=state.bookmarks.findIndex(b=>b.id===target);const [item]=state.bookmarks.splice(a,1);state.bookmarks.splice(t,0,item);render()})})}
+
+function openBookmark(id){const b=id?state.bookmarks.find(x=>x.id===id):null;$('#bookmarkDialogTitle').textContent=b?'Modifier le favori':'Ajouter un favori';$('#bookmarkId').value=b?.id||'';$('#bmName').value=b?.name||'';$('#bmUrl').value=b?.url||'';$('#bmPage').value=b?.pageId||state.activePageId;$('#bmCategory').value=b?.category||'';$('#bmSubcategory').value=b?.subcategory||'';$('#bmGroup').value=b?.group||'';$('#bmTags').value=(b?.tags||[]).join(', ');$('#bmStatus').value=b?.status||'Utilisé';$('#bmDescription').value=b?.description||'';$('#bmPinned').checked=!!b?.pinned;els.bookmarkDialog.showModal()}
+function fillPageSelect(){$('#bmPage').innerHTML=state.pages.map(p=>`<option value="${p.id}">${p.icon||'🔖'} ${esc(p.name)}</option>`).join('')}
+els.bookmarkForm.addEventListener('submit',e=>{e.preventDefault();const url=$('#bmUrl').value.trim();try{const u=new URL(url);if(!['http:','https:'].includes(u.protocol))throw 0}catch{return alert('URL invalide. Utilise http:// ou https://')};const data={id:$('#bookmarkId').value||uid('bm'),name:$('#bmName').value.trim(),url,pageId:$('#bmPage').value,category:$('#bmCategory').value.trim()||'Sans catégorie',subcategory:$('#bmSubcategory').value.trim()||'Général',group:$('#bmGroup').value.trim()||'Favoris',tags:$('#bmTags').value.split(',').map(x=>x.trim()).filter(Boolean),status:$('#bmStatus').value,description:$('#bmDescription').value.trim(),pinned:$('#bmPinned').checked,createdAt:new Date().toISOString()};const i=state.bookmarks.findIndex(b=>b.id===data.id);if(i>=0)state.bookmarks[i]={...state.bookmarks[i],...data};else state.bookmarks.push(data);els.bookmarkDialog.close();state.activePageId=data.pageId;render()});
+$$('.close-modal').forEach(b=>b.onclick=()=>els.bookmarkDialog.close());
+$('#addBookmarkBtn').onclick=()=>openBookmark();
+
+function openPage(){els.pageForm.reset();els.pageDialog.showModal();setTimeout(()=>$('#pageName').focus(),40)}
+$('#addPageBtn').onclick=openPage;$('#drawerAddPage').onclick=openPage;$$('.close-page-modal').forEach(b=>b.onclick=()=>els.pageDialog.close());els.pageForm.addEventListener('submit',e=>{e.preventDefault();const name=$('#pageName').value.trim();if(!name)return;const p={id:uid('page'),name,icon:$('#pageIcon').value.trim()||'🔖'};state.pages.push(p);state.activePageId=p.id;els.pageDialog.close();render()});
+
+function openDrawer(){els.drawer.classList.add('open');els.backdrop.classList.add('show');els.drawer.setAttribute('aria-hidden','false')}function closeDrawer(){els.drawer.classList.remove('open');els.backdrop.classList.remove('show');els.drawer.setAttribute('aria-hidden','true')}$('#pagesMenuBtn').onclick=openDrawer;$('#closeDrawer').onclick=closeDrawer;els.backdrop.onclick=closeDrawer;els.pageSearch.oninput=renderDrawer;
+els.search.oninput=renderContent;els.scope.onchange=renderContent;els.view.value=state.view||'grid';els.view.onchange=()=>{state.view=els.view.value;render()};
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();els.search.focus()}});
+
+const savedTheme=localStorage.getItem(THEME_KEY)||'dark';document.documentElement.dataset.theme=savedTheme;$('#themeToggle').onclick=()=>{const n=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=n;localStorage.setItem(THEME_KEY,n)};
+$('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bookmarks-backup.json';a.click();URL.revokeObjectURL(a.href)};
+$('#importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x.pages||!x.bookmarks)throw 0;if(confirm('Remplacer les données actuelles par cette sauvegarde ?')){state=x;render()}}catch{alert('Fichier de sauvegarde invalide.')}};
+render();
