@@ -4,17 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <meta name="description" content="Bookmarks — gestionnaire personnel de favoris et pages de démarrage." />
-  <title>Bookmarks v0.5</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔖</text></svg>">
+  <title>Bookmarks v0.6</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v0.5</span></div>
+      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v0.6</span></div>
       <div class="top-actions">
         <button id="themeToggle" class="icon-btn" title="Changer de thème">◐</button>
+        <button id="installBtn" class="btn secondary hidden" title="Installer Bookmarks">Installer</button>
+        <span id="networkStatus" class="status">En ligne</span>
         <button id="cloudBtn" class="btn secondary" title="Synchronisation cloud">☁ Cloud</button>
         <button id="toolsBtn" class="btn secondary">Outils</button>
         <button id="exportBtn" class="btn secondary">Exporter</button>
