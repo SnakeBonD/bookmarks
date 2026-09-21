@@ -9,13 +9,13 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <meta name="description" content="Bookmarks — gestionnaire personnel de favoris et pages de démarrage." />
-  <title>Bookmarks v0.7</title>
+  <title>Bookmarks v0.8</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v0.7</span></div>
+      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v0.8</span></div>
       <div class="top-actions">
         <button id="themeToggle" class="icon-btn" title="Changer de thème">◐</button>
         <button id="installBtn" class="btn secondary hidden" title="Installer Bookmarks">Installer</button>
@@ -144,7 +144,11 @@
         <label class="check"><input type="checkbox" name="widgetType" value="note"> Note rapide</label>
         <label class="check"><input type="checkbox" name="widgetType" value="search"> Recherche web</label>
         <label class="check"><input type="checkbox" name="widgetType" value="calendar"> Calendrier</label>
+        <label class="check"><input type="checkbox" name="widgetType" value="rss"> Flux RSS</label>
       </div>
+      <label>URL du flux RSS
+        <input id="rssUrl" type="url" placeholder="https://exemple.com/feed.xml">
+      </label>
       <label>Moteur de recherche
         <select id="searchEngine">
           <option value="google">Google</option>
