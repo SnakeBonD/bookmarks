@@ -1,9 +1,9 @@
 {
   "name": "bookmarks",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "check": "node --check app.js && node --check api/config.js && node --check api/check-link.js && node --check api/fetch-rss.js && node --check sw.js",
-    "test": "node tests/smoke-test.cjs"
+    "test": "node tests/smoke-test.cjs && node tests/production-test.cjs"
   }
 }
