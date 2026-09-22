@@ -1,45 +1,69 @@
-# Bookmarks v0.9
+# Bookmarks v1.0
 
 Gestionnaire personnel de favoris et pages de démarrage de SnakeBonD.
 
 Production : https://bookmarks.snakebond.net
 
-## Points forts
-- Pages, catégories, sous-catégories, groupes et favoris
-- Recherche, drag & drop et favoris épinglés
-- Import/export JSON et favoris navigateur
-- Détection des doublons et vérification sécurisée des liens
-- Historique d’utilisation et suggestions de classement
-- PWA installable et fonctionnement hors ligne
-- Widgets configurables, calendrier, recherche web et RSS
-- Synchronisation Supabase facultative
-- Sauvegardes locales versionnées
+## Fonctionnalités
+- pages de démarrage multiples
+- hiérarchie Page → Catégorie → Sous-catégorie → Groupe → Favori
+- gestion complète des pages et favoris
+- recherche globale ou par page
+- drag & drop, favoris épinglés et sections repliables
+- import/export JSON
+- import/export des favoris Chrome / Edge / Firefox
+- détection des doublons
+- vérification sécurisée des liens
+- historique d’utilisation
+- suggestions locales de classement
+- widgets configurables : horloge, statistiques, note, recherche web, calendrier, RSS
+- PWA installable et interface disponible hors ligne
+- sauvegardes locales versionnées
+- synchronisation Supabase facultative
 
-## Sauvegardes v0.9
-Bookmarks conserve jusqu’à 10 snapshots locaux.
+## Production v1.0
+La v1.0 ajoute la couche de stabilisation production :
 
-Des snapshots automatiques sont créés avant :
-- suppression d’une page ;
-- import JSON remplaçant les données ;
-- restauration depuis le cloud ;
-- restauration d’un ancien snapshot.
+- domaine canonique `bookmarks.snakebond.net`
+- métadonnées et Open Graph
+- politique d’indexation privée : `noindex` + `robots.txt`
+- `sitemap.xml`
+- page 404 personnalisée
+- Content Security Policy
+- protections anti-framing et MIME sniffing
+- Referrer Policy
+- Permissions Policy
+- cache explicite pour l’application et les API
+- contrôles d’accessibilité de base
+- tests de certification production dans la CI
 
-Accès : **Outils → Sauvegardes → Gérer**.
+Le site est volontairement personnel : les moteurs de recherche sont donc bloqués.
 
-Les snapshots restent sur l’appareil tant que la synchronisation cloud n’est pas activée.
+## Sécurité
+- aucune clé service role dans le navigateur
+- RLS obligatoire pour la synchronisation Supabase
+- API de vérification de liens et RSS protégées contre SSRF
+- blocage localhost et réseaux privés
+- revalidation DNS et des redirections
+- CSP stricte
+- HTTPS via Vercel
+- API exclues du cache PWA
 
-## Développement
+## Synchronisation cloud
+La synchronisation Supabase est déjà prévue mais reste facultative. Sans configuration cloud, Bookmarks fonctionne intégralement avec le stockage local du navigateur.
+
+Pour l’activer :
+1. créer un projet Supabase dédié à Bookmarks ;
+2. appliquer `supabase/migrations/001_bookmark_states.sql` ;
+3. ajouter dans Vercel :
+   - `SUPABASE_URL`
+   - `SUPABASE_PUBLISHABLE_KEY`
+4. autoriser `https://bookmarks.snakebond.net` dans Supabase Auth.
+
+## Validation
 ```bash
 npm run check
 npm test
 ```
 
-## Sécurité
-- RLS stricte pour la synchronisation facultative
-- aucun secret serveur exposé
-- vérificateurs d’URL protégés contre SSRF
-- cache PWA limité aux ressources de l’application
-- snapshots stockés localement
-
-## Prochaine étape
-v1.0 : stabilisation, métadonnées de production, sitemap/robots, page 404, en-têtes de sécurité et validation finale.
+La CI vérifie la syntaxe JavaScript, les smoke tests, la cohérence de version, les fichiers de production et les principaux en-têtes de sécurité.
