@@ -8,16 +8,23 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <meta name="description" content="Bookmarks — gestionnaire personnel de favoris et pages de démarrage." />
-  <title>Bookmarks v0.9</title>
+  <meta name="description" content="Bookmarks — gestionnaire personnel de favoris et pages de démarrage SnakeBonD." />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <link rel="canonical" href="https://bookmarks.snakebond.net/" />
+  <meta property="og:title" content="Bookmarks" />
+  <meta property="og:description" content="Gestionnaire personnel de favoris et pages de démarrage SnakeBonD." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://bookmarks.snakebond.net/" />
+  <meta property="og:image" content="https://bookmarks.snakebond.net/favicon.svg" />
+  <title>Bookmarks</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v0.9</span></div>
+      <div class="brand"><span class="brand-icon">🔖</span><span>Bookmarks</span><span class="version">v1.0</span></div>
       <div class="top-actions">
-        <button id="themeToggle" class="icon-btn" title="Changer de thème">◐</button>
+        <button id="themeToggle" class="icon-btn" title="Changer de thème" aria-label="Changer de thème">◐</button>
         <button id="installBtn" class="btn secondary hidden" title="Installer Bookmarks">Installer</button>
         <span id="networkStatus" class="status">En ligne</span>
         <button id="cloudBtn" class="btn secondary" title="Synchronisation cloud">☁ Cloud</button>
@@ -32,7 +39,7 @@
     <section class="pagebar">
       <button id="pagesMenuBtn" class="btn secondary">☰ Pages</button>
       <div id="pageTabs" class="page-tabs"></div>
-      <button id="addPageBtn" class="icon-btn" title="Nouvelle page">＋</button>
+      <button id="addPageBtn" class="icon-btn" title="Nouvelle page" aria-label="Nouvelle page">＋</button>
     </section>
 
     <section class="searchbar">
@@ -56,7 +63,7 @@
   </div>
 
   <aside id="pagesDrawer" class="drawer" aria-hidden="true">
-    <div class="drawer-head"><strong>Mes pages</strong><button id="closeDrawer" class="icon-btn">✕</button></div>
+    <div class="drawer-head"><strong>Mes pages</strong><button id="closeDrawer" class="icon-btn" aria-label="Fermer le menu des pages">✕</button></div>
     <input id="pageSearch" class="drawer-search" placeholder="Rechercher des pages" />
     <div id="drawerPages" class="drawer-list"></div>
     <button id="drawerAddPage" class="btn primary full">Créer une nouvelle page</button>
@@ -65,7 +72,7 @@
 
   <dialog id="bookmarkDialog" class="modal">
     <form id="bookmarkForm" method="dialog">
-      <div class="modal-head"><h2 id="bookmarkDialogTitle">Ajouter un favori</h2><button type="button" class="icon-btn close-modal">✕</button></div>
+      <div class="modal-head"><h2 id="bookmarkDialogTitle">Ajouter un favori</h2><button type="button" class="icon-btn close-modal" aria-label="Fermer la fenêtre">✕</button></div>
       <input type="hidden" id="bookmarkId">
       <div class="form-grid">
         <label>Nom<input id="bmName" required maxlength="80"></label>
@@ -91,7 +98,7 @@
 
   <dialog id="pageDialog" class="modal small">
     <form id="pageForm" method="dialog">
-      <div class="modal-head"><h2 id="pageDialogTitle">Nouvelle page</h2><button type="button" class="icon-btn close-page-modal">✕</button></div>
+      <div class="modal-head"><h2 id="pageDialogTitle">Nouvelle page</h2><button type="button" class="icon-btn close-page-modal" aria-label="Fermer la fenêtre">✕</button></div>
       <input type="hidden" id="pageId">
       <label>Nom de la page<input id="pageName" required maxlength="50" placeholder="Ex. INFORMATIQUE"></label>
       <label>Icône<input id="pageIcon" maxlength="4" placeholder="💻"></label>
@@ -115,7 +122,7 @@
 
   <dialog id="cloudDialog" class="modal small">
     <form id="cloudForm">
-      <div class="modal-head"><h2>Synchronisation cloud</h2><button type="button" id="closeCloud" class="icon-btn">✕</button></div>
+      <div class="modal-head"><h2>Synchronisation cloud</h2><button type="button" id="closeCloud" class="icon-btn" aria-label="Fermer la synchronisation cloud">✕</button></div>
       <div id="cloudStatus" class="cloud-status"></div>
       <div id="cloudAuthArea">
         <label>Email<input id="cloudEmail" type="email" placeholder="vous@exemple.com"></label>
@@ -135,7 +142,7 @@
 
   <dialog id="widgetDialog" class="modal small">
     <form id="widgetForm">
-      <div class="modal-head"><h2>Widgets de la page</h2><button type="button" id="closeWidgets" class="icon-btn">✕</button></div>
+      <div class="modal-head"><h2>Widgets de la page</h2><button type="button" id="closeWidgets" class="icon-btn" aria-label="Fermer les widgets">✕</button></div>
       <div class="widget-options">
         <label class="check"><input type="checkbox" name="widgetType" value="clock"> Horloge</label>
         <label class="check"><input type="checkbox" name="widgetType" value="stats"> Statistiques</label>
@@ -161,13 +168,13 @@
   </dialog>
 
   <dialog id="backupDialog" class="modal small">
-    <div class="modal-head"><h2>Sauvegardes</h2><button type="button" id="closeBackups" class="icon-btn">✕</button></div>
+    <div class="modal-head"><h2>Sauvegardes</h2><button type="button" id="closeBackups" class="icon-btn" aria-label="Fermer les sauvegardes">✕</button></div>
     <div class="backup-toolbar"><button id="createSnapshotBtn" type="button" class="btn primary">Créer un snapshot</button></div>
     <div id="backupList" class="backup-list"></div>
   </dialog>
 
   <dialog id="toolsDialog" class="modal small">
-    <div class="modal-head"><h2>Outils</h2><button type="button" id="closeTools" class="icon-btn">✕</button></div>
+    <div class="modal-head"><h2>Outils</h2><button type="button" id="closeTools" class="icon-btn" aria-label="Fermer les outils">✕</button></div>
     <div id="toolsContent" class="tools-content"></div>
   </dialog>
 
