@@ -9,15 +9,15 @@ const pkg=JSON.parse(read('package.json'));
 const sw=read('sw.js');
 const nf=read('404.html');
 
-if(pkg.version!=='1.0.0')throw new Error('package version is not 1.0.0');
-if(!html.includes('<span class="version">v1.0</span>'))throw new Error('UI version is not v1.0');
+if(pkg.version!=='1.0.1')throw new Error('package version is not 1.0.1');
+if(!html.includes('<span class="version">v1.0.1</span>'))throw new Error('UI version is not v1.0.1');
 if(!html.includes('https://bookmarks.snakebond.net/'))throw new Error('canonical production domain missing');
 if(!html.includes('name="robots" content="noindex,nofollow,noarchive"'))throw new Error('private robots meta missing');
 for(const marker of ['og:title','og:description','og:url','og:image'])if(!html.includes(marker))throw new Error('missing '+marker);
 if(!robots.includes('Disallow: /'))throw new Error('robots.txt must block indexing');
 if(!sitemap.includes('https://bookmarks.snakebond.net/'))throw new Error('canonical sitemap URL missing');
 if(!nf.includes('Page introuvable')||!nf.includes('/404.css'))throw new Error('custom 404 incomplete');
-if(!sw.includes("bookmarks-v1.0-shell"))throw new Error('PWA cache not bumped to v1.0');
+if(!sw.includes("bookmarks-v1.0.1-shell"))throw new Error('PWA cache not bumped to v1.0.1');
 
 const headers=JSON.stringify(vercel.headers||[]);
 for(const header of ['Content-Security-Policy','X-Content-Type-Options','X-Frame-Options','Referrer-Policy','Permissions-Policy']) {

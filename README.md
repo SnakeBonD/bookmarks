@@ -1,4 +1,4 @@
-# Bookmarks v1.0
+# Bookmarks v1.0.1
 
 Gestionnaire personnel de favoris et pages de démarrage de SnakeBonD.
 
@@ -21,8 +21,8 @@ Production : https://bookmarks.snakebond.net
 - sauvegardes locales versionnées
 - synchronisation Supabase facultative
 
-## Production v1.0
-La v1.0 ajoute la couche de stabilisation production :
+## Production v1.0.1
+La v1.0.1 conserve la stabilisation production de la v1.0 et corrige le chargement des favicons via une route interne same-origin avec fallback fiable.
 
 - domaine canonique `bookmarks.snakebond.net`
 - métadonnées et Open Graph
