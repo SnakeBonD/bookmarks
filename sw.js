@@ -1,4 +1,4 @@
-const CACHE='bookmarks-v1.0-shell';
+const CACHE='bookmarks-v1.0.1-shell';
 const SHELL=['/','/index.html','/styles.css','/app.js','/manifest.webmanifest','/favicon.svg'];
 
 self.addEventListener('install',event=>{
